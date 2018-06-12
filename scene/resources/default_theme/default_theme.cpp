@@ -482,7 +482,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_color("word_highlighted_color", "TextEdit", Color(0.8, 0.9, 0.9, 0.15));
 
 	theme->set_constant("completion_lines", "TextEdit", 7);
-	theme->set_constant("completion_max_width", "TextEdit", 50);
+	theme->set_constant("completion_max_width", "TextEdit", 128);
 	theme->set_constant("completion_scroll_width", "TextEdit", 3);
 	theme->set_constant("line_spacing", "TextEdit", 4 * scale);
 

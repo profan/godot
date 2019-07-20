@@ -213,9 +213,13 @@ void AStarGrid2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("connect_points", "pos", "to_pos", "cost", "bidirectional"), &AStarGrid2D::connect_points, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_points", "pos", "to_pos", "bidirectional"), &AStarGrid2D::disconnect_points, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("are_points_connected", "pos", "to_pos"), &AStarGrid2D::are_points_connected, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
 
+	ClassDB::bind_method(D_METHOD("connect_point", "point", "cost"), &AStarGrid2D::connect_point);
+	ClassDB::bind_method(D_METHOD("disconnect_point", "point"), &AStarGrid2D::disconnect_point);
+
+	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
+
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarGrid2D::get_closest_point);
 	ClassDB::bind_method(D_METHOD("get_grid_path", "from_pos", "to_pos"), &AStarGrid2D::get_grid_path);
 
@@ -263,6 +267,9 @@ bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, int cost, bool bidire
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
 
+	if (from_idx < 0 || from_idx >= grid.size()) return false;
+	if (to_idx < 0 || to_idx >= grid.size()) return false;
+
 	Vector2 n_offset = from - to;
 	int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
 	if (to_n == -1) {
@@ -289,16 +296,27 @@ void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional
 
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
+
+	if (from_idx < 0 || from_idx >= grid.size()) return;
+	if (to_idx < 0 || to_idx >= grid.size()) return;
+
 	Vector2 n_offset = to - from;
 	int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
+	if (to_n == -1) {
+		return;
+	} else {
+		grid.write()[from_idx].neighbours[to_n] = -1;
+	}
 
 	if (bidirectional) {
 		Vector2 other_n_offset = from - to;
 		int from_n = offset_to_neighbour(other_n_offset.x, other_n_offset.y);
-		grid.write()[to_idx].neighbours[from_n] = -1;
+		if (from_n == -1) {
+			return;
+		} else {
+			grid.write()[to_idx].neighbours[from_n] = -1;
+		}
 	}
-
-	grid.write()[from_idx].neighbours[to_n] = -1;
 
 }
 
@@ -306,10 +324,18 @@ bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
 	return false;
 }
 
+void AStarGrid2D::connect_point(Vector2 point, int cost) {
+	for (int n = 0; n < 8; ++n) {
+		Vector2 n_pos = point + neighbours[n];
+		connect_points(point, n_pos, cost, true);
+	}
+}
+
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
 void AStarGrid2D::disconnect_point(Vector2 point) {
 	for (int n = 0; n < 8; ++n) {
-
+		Vector2 n_pos = point + neighbours[n];
+		disconnect_points(point, n_pos);
 	}
 }
 
@@ -321,7 +347,7 @@ void AStarGrid2D::resize(int w, int h) {
 
 	for (int i = 0; i < grid.size(); ++i) {
 		Node* writer = grid.write().ptr();
-		writer[i].pass = -1;
+		writer[i].pass = 0;
 		writer[i].f_score = __INT_MAX__;
 		writer[i].g_score = __INT_MAX__;
 		for (int n = 0; n < 8; ++n) {

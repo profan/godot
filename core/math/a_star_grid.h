@@ -101,7 +101,7 @@ class AStarGrid2D : public Reference {
 	};
 
 	struct Node {
-		int pass;
+		unsigned int pass;
 		int f_score;
 		int g_score;
 		int came_from;
@@ -147,6 +147,8 @@ public:
 	bool connect_points(Vector2 from, Vector2 to, int cost, bool bidirectional = true);
 	void disconnect_points(Vector2 from, Vector2 to, bool bidirectional = true);
 	bool are_points_connected(Vector2 from, Vector2 to) const;
+
+	void connect_point(Vector2 point, int cost);
 	void disconnect_point(Vector2 point);
 
 	void resize(int w, int h);

@@ -129,7 +129,6 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 	Node *writer = grid.write().ptr();
 	Node *begin_point = &writer[from_idx];
-	Node *end_point = &writer[to_idx];
 
 	bool found_path = false;
 

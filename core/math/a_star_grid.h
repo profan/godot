@@ -119,12 +119,13 @@ class AStarGrid2D : public Reference {
 		_FORCE_INLINE_ bool operator()(int a_idx, int b_idx) const { // Returns true when the Point A is worse than Point B
 			Node *A = &nodes[a_idx];
 			Node *B = &nodes[b_idx];
-			if (A->f_score > B->f_score)
+			if (A->f_score > B->f_score) {
 				return true;
-			else if (A->f_score < B->f_score)
+			} else if (A->f_score < B->f_score) {
 				return false;
-			else
+			} else {
 				return A->g_score < B->g_score; // If the f_costs are the same then prioritize the points that are further away from the start
+			}
 		}
 	};
 

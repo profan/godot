@@ -153,17 +153,19 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 		sorter.pop_heap(0, open_list.size(), open_list.ptrw()); // Remove the current point from the open list
 		open_list.remove(open_list.size() - 1);
+		p->closed_pass = pass;
 
 		for (int n = 0; n < 8; ++n) {
 
 			// skip unconnected edge, not a neighbour
 			if (p->neighbours[n] == -1) continue;
 
-			Vector2 n_pos = index_to_position(p_idx) + neighbours[n];
-			int n_idx = position_to_index(n_pos);
+			int n_x = (p_idx % width) + neighbours[n].x;
+			int n_y = (p_idx / width) + neighbours[n].y;
+			int n_idx = position_to_index(n_x, n_y);
 
 			// out of bounds
-			if (n_idx == -1) continue;
+			if (n_idx == -1 || grid[n_idx].closed_pass == pass) continue;
 
 			int tentative_g_score = p->g_score + _compute_cost(p_idx, n);
 
@@ -171,10 +173,13 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 				Node *n_ptr = &writer[n_idx];
 				n_ptr->came_from = p_idx;
 				n_ptr->g_score = tentative_g_score;
-				n_ptr->f_score = n_ptr->g_score + _estimate_cost(p_idx, n_idx);
-				if (n_ptr->pass != pass) {
-					n_ptr->pass = pass;
+				n_ptr->f_score = n_ptr->g_score + _estimate_cost(n_idx, to_idx);
+				if (n_ptr->open_pass != pass) {
+					n_ptr->open_pass = pass;
 					open_list.push_back(n_idx);
+					sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
+				} else {
+					sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
 				}
 			}
 
@@ -347,7 +352,8 @@ void AStarGrid2D::resize(int w, int h) {
 
 	for (int i = 0; i < grid.size(); ++i) {
 		Node* writer = grid.write().ptr();
-		writer[i].pass = 0;
+		writer[i].open_pass = 0;
+		writer[i].closed_pass = 0;
 		writer[i].f_score = __INT_MAX__;
 		writer[i].g_score = __INT_MAX__;
 		for (int n = 0; n < 8; ++n) {

@@ -162,6 +162,10 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 			Vector2 n_pos = index_to_position(p_idx) + neighbours[n];
 			int n_idx = position_to_index(n_pos);
+
+			// out of bounds
+			if (n_idx == -1) continue;
+
 			int tentative_g_score = p->g_score + _compute_cost(p_idx, n);
 
 			if (tentative_g_score < grid[n_idx].g_score) {
@@ -244,6 +248,7 @@ int AStarGrid2D::position_to_index(Vector2 pos) const {
 }
 
 int AStarGrid2D::position_to_index(int x, int y) const {
+	if (x < 0 || x >= width || y < 0 || y >= height) return -1;
 	int i = (y * width) + x;
 	return i;
 }
@@ -300,6 +305,13 @@ void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional
 
 bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
 	return false;
+}
+
+/* disconnect the point from all its neighbours, and all its neighbours from the point */
+void AStarGrid2D::disconnect_point(Vector2 point) {
+	for (int n = 0; n < 8; ++n) {
+
+	}
 }
 
 void AStarGrid2D::resize(int w, int h) {

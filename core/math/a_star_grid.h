@@ -146,6 +146,7 @@ public:
 	bool connect_points(Vector2 from, Vector2 to, int cost, bool bidirectional = true);
 	void disconnect_points(Vector2 from, Vector2 to, bool bidirectional = true);
 	bool are_points_connected(Vector2 from, Vector2 to) const;
+	void disconnect_point(Vector2 point);
 
 	void resize(int w, int h);
 	void clear();

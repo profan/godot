@@ -218,7 +218,7 @@ int AStarGrid2D::offset_to_neighbour(int x, int y) {
 	} else {
 		return -1;
 	}
-	
+
 }
 
 void AStarGrid2D::_bind_methods() {
@@ -274,7 +274,7 @@ int AStarGrid2D::position_to_index(int x, int y) const {
 
 Vector2 AStarGrid2D::index_to_position(int idx) const {
 
-	ERR_FAIL_COND(idx < 0);
+	ERR_FAIL_COND_V(idx < 0, Vector2(0, 0));
 
 	int x = idx % width;
 	int y = idx / width;
@@ -285,9 +285,9 @@ Vector2 AStarGrid2D::index_to_position(int idx) const {
 
 bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bidirectional) {
 
-	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
-	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
-	ERR_FAIL_COND(cost < 0);
+	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
+	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
+	ERR_FAIL_COND_V(cost < 0, false);
 
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
@@ -350,8 +350,8 @@ void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional
 
 bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
 
-	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
-	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
+	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
+	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
 
 	return false;
 
@@ -413,8 +413,8 @@ int AStarGrid2D::get_closest_point(const Vector2 &p_point) const {
 
 PoolVector2Array AStarGrid2D::get_grid_path(Vector2 from, Vector2 to) {
 
-	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
-	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
+	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, PoolVector2Array());
+	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, PoolVector2Array());
 	
 	int from_id = position_to_index(from);
 	int to_id = position_to_index(to);

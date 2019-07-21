@@ -399,8 +399,16 @@ void AStarGrid2D::resize(int w, int h) {
 	width = w;
 	height = h;
 
+	clear();
+
+}
+
+void AStarGrid2D::clear() {
+
+	Node *writer = grid.write().ptr();
+
 	for (int i = 0; i < grid.size(); ++i) {
-		Node* writer = grid.write().ptr();
+		writer[i].came_from = -1;
 		writer[i].open_pass = 0;
 		writer[i].closed_pass = 0;
 		writer[i].f_score = __INT_MAX__;
@@ -409,10 +417,6 @@ void AStarGrid2D::resize(int w, int h) {
 			writer[i].neighbours[n] = -1;
 		}
 	}
-
-}
-
-void AStarGrid2D::clear() {
 
 }
 

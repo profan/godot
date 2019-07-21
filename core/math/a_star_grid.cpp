@@ -269,10 +269,10 @@ int AStarGrid2D::position_to_index(const Vector2 &pos) const {
 
 int AStarGrid2D::position_to_index(int x, int y) const {
 
-	if (x < 0 || x >= width || y < 0 || y >= height) return -1;
-	int i = (y * width) + x;
+	if (x < 0 || x >= width || y < 0 || y >= height)
+		return -1;
 
-	return i;
+	return (y * width) + x;
 
 }
 

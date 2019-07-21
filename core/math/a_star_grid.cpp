@@ -207,8 +207,8 @@ void AStarGrid2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("disconnect_points", "from", "to", "bidirectional"), &AStarGrid2D::disconnect_points, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("are_points_connected", "from", "to"), &AStarGrid2D::are_points_connected, DEFVAL(true));
 
-	ClassDB::bind_method(D_METHOD("connect_point", "point", "cost"), &AStarGrid2D::connect_point);
-	ClassDB::bind_method(D_METHOD("disconnect_point", "point"), &AStarGrid2D::disconnect_point);
+	ClassDB::bind_method(D_METHOD("connect_to_neighbours", "point", "cost", "diagonals"), &AStarGrid2D::connect_to_neighbours, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("disconnect_from_neighbours", "point"), &AStarGrid2D::disconnect_from_neighbours);
 
 	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
@@ -361,21 +361,26 @@ bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) c
 
 }
 
-void AStarGrid2D::connect_point(const Vector2 &point, real_t cost) {
+void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals) {
 
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 	ERR_FAIL_COND(cost < 0);
 
 	for (int n = 0; n < 8; ++n) {
 		Vector2 n_pos = point + neighbours[n];
-		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) continue;
-		else connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
+		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
+			continue;
+		} else {
+			if (diagonals || (n_pos.x == 0 || n_pos.y == 0)) {
+				connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
+			}
+		}
 	}
 	
 }
 
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
-void AStarGrid2D::disconnect_point(const Vector2 &point) {
+void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 

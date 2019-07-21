@@ -149,8 +149,8 @@ public:
 	bool are_points_connected(const Vector2 &from, const Vector2 &to) const;
 
 	PoolIntArray get_neighbour_costs(const Vector2 &point);
-	void connect_point(const Vector2 &point, real_t cost);
-	void disconnect_point(const Vector2 &point);
+	void connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals = true);
+	void disconnect_from_neighbours(const Vector2 &point);
 
 	void resize(int w, int h);
 	void clear();

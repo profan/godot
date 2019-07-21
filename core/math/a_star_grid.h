@@ -139,7 +139,7 @@ protected:
 
 public:
 
-	int offset_to_neighbour(int x, int y);
+	int offset_to_neighbour(int x, int y) const;
 	int position_to_index(const Vector2 &pos) const;
 	int position_to_index(int x, int y) const;
 	Vector2 index_to_position(int idx) const;
@@ -148,7 +148,7 @@ public:
 	void disconnect_points(const Vector2 &from, const Vector2 &to, bool bidirectional = true);
 	bool are_points_connected(const Vector2 &from, const Vector2 &to) const;
 
-	PoolIntArray get_neighbour_costs(const Vector2 &point);
+	PoolIntArray get_neighbour_costs(const Vector2 &point) const;
 	void connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals = true);
 	void disconnect_from_neighbours(const Vector2 &point);
 

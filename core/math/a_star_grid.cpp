@@ -239,7 +239,7 @@ real_t AStarGrid2D::_compute_cost(int from_id, int n_id) {
 
 }
 
-int AStarGrid2D::offset_to_neighbour(int x, int y) {
+int AStarGrid2D::offset_to_neighbour(int x, int y) const {
 
 	if (x == -1 && y == 1) {
 		return 0;
@@ -361,6 +361,13 @@ bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) c
 
 	ERR_EXPLAIN("expected value within bounds of grid for to, was out of bounds.");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
+
+	Vector2 delta = to - from;
+	int n_id = offset_to_neighbour(delta.x, delta.y);
+	if (n_id != -1) {
+		int from_id = position_to_index(from);
+		return grid[from_id].neighbours[n_id] != -1;
+	}
 
 	return false;
 

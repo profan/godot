@@ -151,7 +151,8 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			break;
 		}
 
-		sorter.pop_heap(0, open_list.size(), open_list.ptrw()); // Remove the current point from the open list
+		// remove the current point from the open list
+		sorter.pop_heap(0, open_list.size(), open_list.ptrw());
 		open_list.remove(open_list.size() - 1);
 		p->closed_pass = pass;
 
@@ -164,7 +165,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			int n_y = (p_idx / width) + neighbours[n].y;
 			int n_idx = position_to_index(n_x, n_y);
 
-			// out of bounds
+			// out of bounds or already handled
 			if (n_idx == -1 || grid[n_idx].closed_pass == pass) continue;
 
 			real_t tentative_g_score = p->g_score + _compute_cost(p_idx, n);
@@ -197,6 +198,47 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 }
 
+void AStarGrid2D::_bind_methods() {
+
+	ClassDB::bind_method(D_METHOD("offset_to_neighbour", "x", "y"), &AStarGrid2D::offset_to_neighbour);
+	ClassDB::bind_method(D_METHOD("index_to_position", "idx"), &AStarGrid2D::index_to_position);
+
+	ClassDB::bind_method(D_METHOD("connect_points", "from", "to", "cost", "bidirectional"), &AStarGrid2D::connect_points, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("disconnect_points", "from", "to", "bidirectional"), &AStarGrid2D::disconnect_points, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("are_points_connected", "from", "to"), &AStarGrid2D::are_points_connected, DEFVAL(true));
+
+	ClassDB::bind_method(D_METHOD("connect_point", "point", "cost"), &AStarGrid2D::connect_point);
+	ClassDB::bind_method(D_METHOD("disconnect_point", "point"), &AStarGrid2D::disconnect_point);
+
+	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
+	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
+
+	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarGrid2D::get_closest_point);
+	ClassDB::bind_method(D_METHOD("get_grid_path", "from", "to"), &AStarGrid2D::get_grid_path);
+
+	BIND_VMETHOD(MethodInfo(Variant::REAL, "_estimate_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "to_id")));
+	BIND_VMETHOD(MethodInfo(Variant::REAL, "_compute_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "n_id")));
+
+}
+
+real_t AStarGrid2D::_estimate_cost(int from_id, int to_id) {
+
+	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_estimate_cost))
+		return get_script_instance()->call(SceneStringNames::get_singleton()->_estimate_cost, from_id, to_id);
+
+	return index_to_position(from_id).distance_to(index_to_position(to_id));
+
+}
+
+real_t AStarGrid2D::_compute_cost(int from_id, int n_id) {
+	
+	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_compute_cost))
+		return get_script_instance()->call(SceneStringNames::get_singleton()->_compute_cost, from_id, n_id);
+
+	return grid[from_id].neighbours[n_id];
+
+}
+
 int AStarGrid2D::offset_to_neighbour(int x, int y) {
 
 	if (x == -1 && y == 1) {
@@ -221,45 +263,7 @@ int AStarGrid2D::offset_to_neighbour(int x, int y) {
 
 }
 
-void AStarGrid2D::_bind_methods() {
-
-	ClassDB::bind_method(D_METHOD("connect_points", "pos", "to_pos", "cost", "bidirectional"), &AStarGrid2D::connect_points, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("disconnect_points", "pos", "to_pos", "bidirectional"), &AStarGrid2D::disconnect_points, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("are_points_connected", "pos", "to_pos"), &AStarGrid2D::are_points_connected, DEFVAL(true));
-
-	ClassDB::bind_method(D_METHOD("connect_point", "point", "cost"), &AStarGrid2D::connect_point);
-	ClassDB::bind_method(D_METHOD("disconnect_point", "point"), &AStarGrid2D::disconnect_point);
-
-	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
-	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
-
-	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarGrid2D::get_closest_point);
-	ClassDB::bind_method(D_METHOD("get_grid_path", "from_pos", "to_pos"), &AStarGrid2D::get_grid_path);
-
-	BIND_VMETHOD(MethodInfo(Variant::REAL, "_estimate_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "to_id")));
-	BIND_VMETHOD(MethodInfo(Variant::REAL, "_compute_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "to_id")));
-
-}
-
-real_t AStarGrid2D::_estimate_cost(int from_id, int to_id) {
-
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_estimate_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_estimate_cost, from_id, to_id);
-
-	return index_to_position(from_id).distance_to(index_to_position(to_id));
-
-}
-
-real_t AStarGrid2D::_compute_cost(int from_id, int n) {
-	
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_compute_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_compute_cost, from_id, n);
-
-	return grid[from_id].neighbours[n];
-
-}
-
-int AStarGrid2D::position_to_index(Vector2 pos) const {
+int AStarGrid2D::position_to_index(const Vector2 &pos) const {
 	return position_to_index(pos.x, pos.y);
 }
 
@@ -283,7 +287,7 @@ Vector2 AStarGrid2D::index_to_position(int idx) const {
 
 }
 
-bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bidirectional) {
+bool AStarGrid2D::connect_points(const Vector2 &from, const Vector2 &to, real_t cost, bool bidirectional) {
 
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
@@ -317,7 +321,7 @@ bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bid
 
 }
 
-void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional) {
+void AStarGrid2D::disconnect_points(const Vector2 &from, const Vector2 &to, bool bidirectional) {
 
 	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
 	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
@@ -348,7 +352,7 @@ void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional
 
 }
 
-bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
+bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) const {
 
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
@@ -357,7 +361,7 @@ bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
 
 }
 
-void AStarGrid2D::connect_point(Vector2 point, real_t cost) {
+void AStarGrid2D::connect_point(const Vector2 &point, real_t cost) {
 
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 	ERR_FAIL_COND(cost < 0);
@@ -371,7 +375,7 @@ void AStarGrid2D::connect_point(Vector2 point, real_t cost) {
 }
 
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
-void AStarGrid2D::disconnect_point(Vector2 point) {
+void AStarGrid2D::disconnect_point(const Vector2 &point) {
 
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 
@@ -407,11 +411,11 @@ void AStarGrid2D::clear() {
 
 }
 
-int AStarGrid2D::get_closest_point(const Vector2 &p_point) const {
-	return -1;
+Vector2 AStarGrid2D::get_closest_point(const Vector2 &p_point) const {
+	return Vector2();
 }
 
-PoolVector2Array AStarGrid2D::get_grid_path(Vector2 from, Vector2 to) {
+PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &to) {
 
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, PoolVector2Array());
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, PoolVector2Array());

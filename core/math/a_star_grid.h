@@ -103,10 +103,10 @@ class AStarGrid2D : public Reference {
 	struct Node {
 		unsigned int open_pass;
 		unsigned int closed_pass;
-		int f_score;
-		int g_score;
+		real_t f_score;
+		real_t g_score;
 		int came_from;
-		int neighbours[8];
+		real_t neighbours[8];
 	};
 
 	int width;
@@ -145,11 +145,11 @@ public:
 	int position_to_index(int x, int y) const;
 	Vector2 index_to_position(int idx) const;
 
-	bool connect_points(Vector2 from, Vector2 to, int cost, bool bidirectional = true);
+	bool connect_points(Vector2 from, Vector2 to, real_t cost, bool bidirectional = true);
 	void disconnect_points(Vector2 from, Vector2 to, bool bidirectional = true);
 	bool are_points_connected(Vector2 from, Vector2 to) const;
 
-	void connect_point(Vector2 point, int cost);
+	void connect_point(Vector2 point, real_t cost);
 	void disconnect_point(Vector2 point);
 
 	void resize(int w, int h);

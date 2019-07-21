@@ -167,20 +167,26 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			// out of bounds
 			if (n_idx == -1 || grid[n_idx].closed_pass == pass) continue;
 
-			int tentative_g_score = p->g_score + _compute_cost(p_idx, n);
+			real_t tentative_g_score = p->g_score + _compute_cost(p_idx, n);
+			bool new_point = false;
 
-			if (tentative_g_score < grid[n_idx].g_score) {
-				Node *n_ptr = &writer[n_idx];
-				n_ptr->came_from = p_idx;
-				n_ptr->g_score = tentative_g_score;
-				n_ptr->f_score = n_ptr->g_score + _estimate_cost(n_idx, to_idx);
-				if (n_ptr->open_pass != pass) {
-					n_ptr->open_pass = pass;
-					open_list.push_back(n_idx);
-					sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
-				} else {
-					sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
-				}
+			Node *n_ptr = &writer[n_idx];
+			if (n_ptr->open_pass != pass) {
+				n_ptr->open_pass = pass;
+				open_list.push_back(n_idx);
+				new_point = true;
+			} else if (tentative_g_score >= grid[n_idx].g_score) {
+				continue;
+			}
+
+			n_ptr->came_from = p_idx;
+			n_ptr->g_score = tentative_g_score;
+			n_ptr->f_score = n_ptr->g_score + _estimate_cost(n_idx, to_idx);
+
+			if (new_point) {
+				sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
+			} else {
+				sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
 			}
 
 		}
@@ -267,7 +273,7 @@ Vector2 AStarGrid2D::index_to_position(int idx) const {
 	return Vector2(x, y);
 }
 
-bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, int cost, bool bidirectional) {
+bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bidirectional) {
 
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
@@ -329,10 +335,10 @@ bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
 	return false;
 }
 
-void AStarGrid2D::connect_point(Vector2 point, int cost) {
+void AStarGrid2D::connect_point(Vector2 point, real_t cost) {
 	for (int n = 0; n < 8; ++n) {
 		Vector2 n_pos = point + neighbours[n];
-		connect_points(point, n_pos, cost, true);
+		connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
 	}
 }
 
@@ -390,10 +396,11 @@ PoolVector2Array AStarGrid2D::get_grid_path(Vector2 from_pos, Vector2 to_pos) {
 
 }
 
-AStarGrid2D::AStarGrid2D() : width(0), height(0) {
+AStarGrid2D::AStarGrid2D() : width(0), height(0), pass(1) {
 
 }
 
 AStarGrid2D::~AStarGrid2D() {
+	pass = 1;
 	clear();
 }

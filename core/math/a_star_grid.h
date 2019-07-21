@@ -148,6 +148,7 @@ public:
 	void disconnect_points(const Vector2 &from, const Vector2 &to, bool bidirectional = true);
 	bool are_points_connected(const Vector2 &from, const Vector2 &to) const;
 
+	real_t get_neighbour_cost(const Vector2 &point, int n_id) const;
 	PoolIntArray get_neighbour_costs(const Vector2 &point) const;
 	void connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals = true);
 	void disconnect_from_neighbours(const Vector2 &point);

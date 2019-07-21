@@ -373,6 +373,16 @@ bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) c
 
 }
 
+real_t AStarGrid2D::get_neighbour_cost(const Vector2 &point, int n_id) const {
+
+	ERR_EXPLAIN("expected neighbour index between 0 and 8, was out of bounds.");
+	ERR_FAIL_COND_V(n_id < 0 || n_id > 8, -1);
+
+	int p_id = position_to_index(point);
+	return grid[p_id].neighbours[n_id];
+	
+}
+
 void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals) {
 
 	ERR_EXPLAIN("expected value within bounds of grid for point, was out of bounds.");

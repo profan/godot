@@ -477,6 +477,8 @@ PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &
 		path.push_back(index_to_position(cur_id));
 		cur_id = came_from_id;
 	}
+	
+	path.push_back(index_to_position(from_id));
 
 	return path;
 

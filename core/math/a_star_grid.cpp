@@ -371,7 +371,7 @@ void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool 
 		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
 			continue;
 		} else {
-			if (diagonals || (n_pos.x == 0 || n_pos.y == 0)) {
+			if (diagonals || (neighbours[n].x == 0 || neighbours[n].y == 0)) {
 				connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
 			}
 		}

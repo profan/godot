@@ -101,8 +101,8 @@ class AStarGrid2D : public Reference {
 	};
 
 	struct Node {
-		unsigned int open_pass;
-		unsigned int closed_pass;
+		uint64_t open_pass;
+		uint64_t closed_pass;
 		real_t f_score;
 		real_t g_score;
 		int came_from;

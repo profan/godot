@@ -198,6 +198,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 }
 
 int AStarGrid2D::offset_to_neighbour(int x, int y) {
+
 	if (x == -1 && y == 1) {
 		return 0;
 	} else if (x == 0 && y == 1) {
@@ -217,6 +218,7 @@ int AStarGrid2D::offset_to_neighbour(int x, int y) {
 	} else {
 		return -1;
 	}
+	
 }
 
 void AStarGrid2D::_bind_methods() {
@@ -262,18 +264,30 @@ int AStarGrid2D::position_to_index(Vector2 pos) const {
 }
 
 int AStarGrid2D::position_to_index(int x, int y) const {
+
 	if (x < 0 || x >= width || y < 0 || y >= height) return -1;
 	int i = (y * width) + x;
+
 	return i;
+
 }
 
 Vector2 AStarGrid2D::index_to_position(int idx) const {
+
+	ERR_FAIL_COND(idx < 0);
+
 	int x = idx % width;
 	int y = idx / width;
+
 	return Vector2(x, y);
+
 }
 
 bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bidirectional) {
+
+	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
+	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
+	ERR_FAIL_COND(cost < 0);
 
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
@@ -305,6 +319,9 @@ bool AStarGrid2D::connect_points(Vector2 from, Vector2 to, real_t cost, bool bid
 
 void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional) {
 
+	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
+	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
+
 	int from_idx = position_to_index(from.x, from.y);
 	int to_idx = position_to_index(to.x, to.y);
 
@@ -332,25 +349,42 @@ void AStarGrid2D::disconnect_points(Vector2 from, Vector2 to, bool bidirectional
 }
 
 bool AStarGrid2D::are_points_connected(Vector2 from, Vector2 to) const {
+
+	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
+	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
+
 	return false;
+
 }
 
 void AStarGrid2D::connect_point(Vector2 point, real_t cost) {
+
+	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
+	ERR_FAIL_COND(cost < 0);
+
 	for (int n = 0; n < 8; ++n) {
 		Vector2 n_pos = point + neighbours[n];
-		connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
+		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) continue;
+		else connect_points(point, n_pos, cost * point.distance_to(n_pos), true);
 	}
+	
 }
 
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
 void AStarGrid2D::disconnect_point(Vector2 point) {
+
+	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
+
 	for (int n = 0; n < 8; ++n) {
 		Vector2 n_pos = point + neighbours[n];
 		disconnect_points(point, n_pos);
 	}
+
 }
 
 void AStarGrid2D::resize(int w, int h) {
+
+	ERR_FAIL_COND(w < 0 || h < 0);
 
 	grid.resize(w * h);
 	width = w;
@@ -377,10 +411,13 @@ int AStarGrid2D::get_closest_point(const Vector2 &p_point) const {
 	return -1;
 }
 
-PoolVector2Array AStarGrid2D::get_grid_path(Vector2 from_pos, Vector2 to_pos) {
+PoolVector2Array AStarGrid2D::get_grid_path(Vector2 from, Vector2 to) {
+
+	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
+	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
 	
-	int from_id = position_to_index(from_pos);
-	int to_id = position_to_index(to_pos);
+	int from_id = position_to_index(from);
+	int to_id = position_to_index(to);
 
 	PoolVector2Array path = {};
 	bool found_path = _solve(from_id, to_id);

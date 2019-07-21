@@ -205,7 +205,7 @@ void AStarGrid2D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("connect_points", "from", "to", "cost", "bidirectional"), &AStarGrid2D::connect_points, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_points", "from", "to", "bidirectional"), &AStarGrid2D::disconnect_points, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("are_points_connected", "from", "to"), &AStarGrid2D::are_points_connected, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("are_points_connected", "from", "to"), &AStarGrid2D::are_points_connected);
 
 	ClassDB::bind_method(D_METHOD("connect_to_neighbours", "point", "cost", "diagonals"), &AStarGrid2D::connect_to_neighbours, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_from_neighbours", "point"), &AStarGrid2D::disconnect_from_neighbours);

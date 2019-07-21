@@ -12,7 +12,7 @@
 			</return>
 			<argument index="0" name="from_id" type="int">
 			</argument>
-			<argument index="1" name="to_id" type="int">
+			<argument index="1" name="n_id" type="int">
 			</argument>
 			<description>
 			</description>
@@ -30,9 +30,9 @@
 		<method name="are_points_connected" qualifiers="const">
 			<return type="bool">
 			</return>
-			<argument index="0" name="pos" type="Vector2">
+			<argument index="0" name="from" type="Vector2">
 			</argument>
-			<argument index="1" name="to_pos" type="Vector2" default="true">
+			<argument index="1" name="to" type="Vector2" default="true">
 			</argument>
 			<description>
 			</description>
@@ -43,31 +43,33 @@
 			<description>
 			</description>
 		</method>
-		<method name="connect_point">
-			<return type="void">
-			</return>
-			<argument index="0" name="point" type="Vector2">
-			</argument>
-			<argument index="1" name="cost" type="int">
-			</argument>
-			<description>
-			</description>
-		</method>
 		<method name="connect_points">
 			<return type="bool">
 			</return>
-			<argument index="0" name="pos" type="Vector2">
+			<argument index="0" name="from" type="Vector2">
 			</argument>
-			<argument index="1" name="to_pos" type="Vector2">
+			<argument index="1" name="to" type="Vector2">
 			</argument>
-			<argument index="2" name="cost" type="int">
+			<argument index="2" name="cost" type="float">
 			</argument>
 			<argument index="3" name="bidirectional" type="bool" default="true">
 			</argument>
 			<description>
 			</description>
 		</method>
-		<method name="disconnect_point">
+		<method name="connect_to_neighbours">
+			<return type="void">
+			</return>
+			<argument index="0" name="point" type="Vector2">
+			</argument>
+			<argument index="1" name="cost" type="float">
+			</argument>
+			<argument index="2" name="diagonals" type="bool" default="true">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="disconnect_from_neighbours">
 			<return type="void">
 			</return>
 			<argument index="0" name="point" type="Vector2">
@@ -78,9 +80,9 @@
 		<method name="disconnect_points">
 			<return type="void">
 			</return>
-			<argument index="0" name="pos" type="Vector2">
+			<argument index="0" name="from" type="Vector2">
 			</argument>
-			<argument index="1" name="to_pos" type="Vector2">
+			<argument index="1" name="to" type="Vector2">
 			</argument>
 			<argument index="2" name="bidirectional" type="bool" default="true">
 			</argument>
@@ -88,7 +90,7 @@
 			</description>
 		</method>
 		<method name="get_closest_point" qualifiers="const">
-			<return type="int">
+			<return type="Vector2">
 			</return>
 			<argument index="0" name="to_position" type="Vector2">
 			</argument>
@@ -98,9 +100,27 @@
 		<method name="get_grid_path">
 			<return type="PoolVector2Array">
 			</return>
-			<argument index="0" name="from_pos" type="Vector2">
+			<argument index="0" name="from" type="Vector2">
 			</argument>
-			<argument index="1" name="to_pos" type="Vector2">
+			<argument index="1" name="to" type="Vector2">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="index_to_position" qualifiers="const">
+			<return type="Vector2">
+			</return>
+			<argument index="0" name="idx" type="int">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="offset_to_neighbour" qualifiers="const">
+			<return type="int">
+			</return>
+			<argument index="0" name="x" type="int">
+			</argument>
+			<argument index="1" name="y" type="int">
 			</argument>
 			<description>
 			</description>

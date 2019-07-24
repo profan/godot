@@ -85,7 +85,7 @@ class AStarGrid2D : public Reference {
 	int height;
 	PoolVector<Node> grid;
 
-	bool _solve(int from_idx, int to_idx);
+	bool _solve(int from_idx, int to_idx, bool use_std_vector);
 
 	struct SortPath {
 		Node *nodes;
@@ -129,7 +129,7 @@ public:
 	void clear();
 
 	Vector2 get_closest_point(const Vector2 &p_point) const;
-	PoolVector2Array get_grid_path(const Vector2 &from, const Vector2 &to);
+	PoolVector2Array get_grid_path(const Vector2 &from, const Vector2 &to, bool use_std_vector = false);
 
 	AStarGrid2D();
 	~AStarGrid2D();

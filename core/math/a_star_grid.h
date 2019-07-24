@@ -34,6 +34,26 @@
 #include "core/reference.h"
 #include "core/self_list.h"
 
+uint32_t EncodeMorton2(uint32_t x, uint32_t y);
+
+uint32_t EncodeMorton3(uint32_t x, uint32_t y, uint32_t z);
+
+// "Insert" a 0 bit after each of the 16 low bits of x
+uint32_t Part1By1(uint32_t x);
+
+// "Insert" two 0 bits after each of the 10 low bits of x
+uint32_t Part1By2(uint32_t x);
+
+// Inverse of Part1By1 - "delete" all odd-indexed bits
+uint32_t Compact1By1(uint32_t x);
+
+// Inverse of Part1By2 - "delete" all bits not at positions divisible by 3
+uint32_t Compact1By2(uint32_t x);
+
+uint32_t DecodeMorton2X(uint32_t code);
+
+uint32_t DecodeMorton2Y(uint32_t code);
+
 class AStarGrid2D : public Reference {
 
 	GDCLASS(AStarGrid2D, Reference);

@@ -34,6 +34,67 @@
 #include "core/script_language.h"
 #include "scene/scene_string_names.h"
 
+/* decoding morton codes
+ *  graciously borrowed from: https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
+ * with regards to fgiesen
+ */
+
+uint32_t EncodeMorton2(uint32_t x, uint32_t y) {
+  return (Part1By1(y) << 1) + Part1By1(x);
+}
+
+uint32_t EncodeMorton3(uint32_t x, uint32_t y, uint32_t z) {
+  return (Part1By2(z) << 2) + (Part1By2(y) << 1) + Part1By2(x);
+}
+
+// "Insert" a 0 bit after each of the 16 low bits of x
+uint32_t Part1By1(uint32_t x) {
+  x &= 0x0000ffff;                  // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  x = (x ^ (x <<  8)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  x = (x ^ (x <<  4)) & 0x0f0f0f0f; // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  x = (x ^ (x <<  2)) & 0x33333333; // x = --fe --dc --ba --98 --76 --54 --32 --10
+  x = (x ^ (x <<  1)) & 0x55555555; // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  return x;
+}
+
+// "Insert" two 0 bits after each of the 10 low bits of x
+uint32_t Part1By2(uint32_t x) {
+  x &= 0x000003ff;                  // x = ---- ---- ---- ---- ---- --98 7654 3210
+  x = (x ^ (x << 16)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  x = (x ^ (x <<  8)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  x = (x ^ (x <<  4)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  x = (x ^ (x <<  2)) & 0x09249249; // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  return x;
+}
+
+// Inverse of Part1By1 - "delete" all odd-indexed bits
+uint32_t Compact1By1(uint32_t x) {
+  x &= 0x55555555;                  // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  x = (x ^ (x >>  1)) & 0x33333333; // x = --fe --dc --ba --98 --76 --54 --32 --10
+  x = (x ^ (x >>  2)) & 0x0f0f0f0f; // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  x = (x ^ (x >>  4)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  x = (x ^ (x >>  8)) & 0x0000ffff; // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  return x;
+}
+
+// Inverse of Part1By2 - "delete" all bits not at positions divisible by 3
+uint32_t Compact1By2(uint32_t x) {
+  x &= 0x09249249;                  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  x = (x ^ (x >>  2)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  x = (x ^ (x >>  4)) & 0x0300f00f; // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  x = (x ^ (x >>  8)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  x = (x ^ (x >> 16)) & 0x000003ff; // x = ---- ---- ---- ---- ---- --98 7654 3210
+  return x;
+}
+
+uint32_t DecodeMorton2X(uint32_t code) {
+  return Compact1By1(code >> 0);
+}
+
+uint32_t DecodeMorton2Y(uint32_t code) {
+  return Compact1By1(code >> 1);
+}
+
 bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 	pass++;
@@ -72,8 +133,8 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			// skip unconnected edge, not a neighbour
 			if (p->neighbours[n] == -1) continue;
 
-			int n_x = (p_idx % width) + neighbours[n].x;
-			int n_y = (p_idx / width) + neighbours[n].y;
+			int n_x = DecodeMorton2X(p_idx) + neighbours[n].x;
+			int n_y = DecodeMorton2Y(p_idx) + neighbours[n].y;
 			int n_idx = position_to_index(n_x, n_y);
 
 			// out of bounds or already handled
@@ -183,7 +244,7 @@ int AStarGrid2D::position_to_index(int x, int y) const {
 	if (x < 0 || x >= width || y < 0 || y >= height)
 		return -1;
 
-	return (y * width) + x;
+	return EncodeMorton2(x, y);
 
 }
 
@@ -191,8 +252,8 @@ Vector2 AStarGrid2D::index_to_position(int idx) const {
 
 	ERR_FAIL_COND_V(idx < 0, Vector2(0, 0));
 
-	int x = idx % width;
-	int y = idx / width;
+	int x = DecodeMorton2X(idx);
+	int y = DecodeMorton2Y(idx);
 
 	return Vector2(x, y);
 
@@ -330,11 +391,18 @@ void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
 void AStarGrid2D::resize(int w, int h) {
 
+	ERR_EXPLAIN("grid dimensions must be less than 32767x32767");
+	ERR_FAIL_COND(w > INT16_MAX && h > INT16_MAX);
+
+	ERR_EXPLAIN("grid size dimensions must be positive");
 	ERR_FAIL_COND(w < 0 || h < 0);
 
-	grid.resize(w * h);
-	width = w;
-	height = h;
+	int next_pot_w = next_power_of_2(w);
+	int next_pot_h = next_power_of_2(h);
+
+	grid.resize(next_pot_w * next_pot_h);
+	width = next_pot_w;
+	height = next_pot_h;
 
 	clear();
 

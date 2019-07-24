@@ -261,10 +261,10 @@ Vector2 AStarGrid2D::index_to_position(int idx) const {
 
 bool AStarGrid2D::connect_points(const Vector2 &from, const Vector2 &to, real_t cost, bool bidirectional) {
 
-	ERR_EXPLAIN("expected value within bounds of grid for from, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
 
-	ERR_EXPLAIN("expected value within bounds of grid for to, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
 
 	ERR_EXPLAIN("edge cost must be non-negative");
@@ -297,10 +297,10 @@ bool AStarGrid2D::connect_points(const Vector2 &from, const Vector2 &to, real_t 
 
 void AStarGrid2D::disconnect_points(const Vector2 &from, const Vector2 &to, bool bidirectional) {
 
-	ERR_EXPLAIN("expected value within bounds of grid for from, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
 	ERR_FAIL_COND(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height);
 
-	ERR_EXPLAIN("expected value within bounds of grid for to, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
 
 	int from_idx = position_to_index(from.x, from.y);
@@ -328,10 +328,10 @@ void AStarGrid2D::disconnect_points(const Vector2 &from, const Vector2 &to, bool
 
 bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) const {
 
-	ERR_EXPLAIN("expected value within bounds of grid for from, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid  (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, false);
 
-	ERR_EXPLAIN("expected value within bounds of grid for to, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid  (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
 
 	Vector2 delta = to - from;
@@ -347,7 +347,7 @@ bool AStarGrid2D::are_points_connected(const Vector2 &from, const Vector2 &to) c
 
 real_t AStarGrid2D::get_neighbour_cost(const Vector2 &point, int n_id) const {
 
-	ERR_EXPLAIN("expected neighbour index between 0 and 8, was out of bounds.");
+	ERR_EXPLAIN("expected neighbour index between 0 and 8, was out of bounds at: " + itos(n_id));
 	ERR_FAIL_COND_V(n_id < 0 || n_id > 8, -1);
 
 	int p_id = position_to_index(point);
@@ -357,10 +357,10 @@ real_t AStarGrid2D::get_neighbour_cost(const Vector2 &point, int n_id) const {
 
 void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals) {
 
-	ERR_EXPLAIN("expected value within bounds of grid for point, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 
-	ERR_EXPLAIN("edge cost must be non-negative");
+	ERR_EXPLAIN("edge cost must be non-negative, was: " + rtos(cost));
 	ERR_FAIL_COND(cost < 0);
 
 	for (int n = 0; n < 8; ++n) {
@@ -379,7 +379,7 @@ void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool 
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
 void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
-	ERR_EXPLAIN("expected value within bounds of grid for point, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 
 	for (int n = 0; n < 8; ++n) {
@@ -395,10 +395,10 @@ void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
 void AStarGrid2D::resize(int w, int h) {
 
-	ERR_EXPLAIN("grid dimensions must be less than 32767x32767");
+	ERR_EXPLAIN("grid dimensions must be less than 32767x32767, got: (" + itos(w) + "x" + itos(h) + ")");
 	ERR_FAIL_COND(w > INT16_MAX && h > INT16_MAX);
 
-	ERR_EXPLAIN("grid size dimensions must be positive");
+	ERR_EXPLAIN("grid size dimensions must be positive, got: (" + itos(w) + "x" + itos(h) + ")");
 	ERR_FAIL_COND(w < 0 || h < 0);
 
 	int next_pot_w = next_power_of_2(w);
@@ -454,10 +454,10 @@ Vector2 AStarGrid2D::get_closest_point(const Vector2 &point) const {
 
 PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &to) {
 
-	ERR_EXPLAIN("expected value within bounds of grid for from, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, PoolVector2Array());
 
-	ERR_EXPLAIN("expected value within bounds of grid for to, was out of bounds.");
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, PoolVector2Array());
 	
 	int from_id = position_to_index(from);

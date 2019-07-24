@@ -384,7 +384,11 @@ void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
 	for (int n = 0; n < 8; ++n) {
 		Vector2 n_pos = point + neighbours[n];
-		disconnect_points(point, n_pos);
+		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
+			continue;
+		} else {
+			disconnect_points(point, n_pos);
+		}
 	}
 
 }

@@ -399,6 +399,8 @@ void AStarGrid2D::resize(int w, int h) {
 
 	int next_pot_w = next_power_of_2(w);
 	int next_pot_h = next_power_of_2(h);
+	int max_power = MAX(next_pot_w, next_pot_h);
+	next_pot_w = next_pot_h = max_power;
 
 	grid.resize(next_pot_w * next_pot_h);
 	width = next_pot_w;

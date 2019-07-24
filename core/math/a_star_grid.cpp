@@ -34,95 +34,6 @@
 #include "core/script_language.h"
 #include "scene/scene_string_names.h"
 
-int euclidean_distance_between(int x1, int y1, int x2, int y2) {
-	return ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1));
-}
-
-bool AStarGrid::_solve(int from_idx, int to_idx) {
-	return false;
-}
-
-void AStarGrid::_bind_methods() {
-
-}
-
-real_t AStarGrid::_estimate_cost(int from_id, int to_id) {
-
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_estimate_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_estimate_cost, from_id, to_id);
-
-	return index_to_position(from_id).distance_to(index_to_position(to_id));
-
-}
-
-real_t AStarGrid::_compute_cost(int from_id, int to_id) {
-	
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_compute_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_compute_cost, from_id, to_id);
-
-	return index_to_position(from_id).distance_to(index_to_position(to_id));
-
-}
-
-int AStarGrid::position_to_index(Vector3 pos) const {
-	return position_to_index(pos.x, pos.y, pos.z);
-}
-
-int AStarGrid::position_to_index(int x, int y, int z) const {
-	int i = (y * width) + x;
-	return i;
-}
-
-Vector3 AStarGrid::index_to_position(int idx) const {
-	int x = idx % width;
-	int y = idx / width;
-	int z = 0; // FIXME
-	return Vector3(x, y, z);
-}
-
-void AStarGrid::connect_points(Vector3 from, Vector3 to, int cost, bool bidirectional) {
-	int from_idx = position_to_index(from.x, from.y, from.z);
-	int to_idx = position_to_index(to.x, to.y, from.z);
-
-}
-
-void AStarGrid::disconnect_points(Vector3 from, Vector3 to, bool bidirectional) {
-	int from_idx = position_to_index(from.x, from.y, from.z);
-	int to_idx = position_to_index(to.x, to.y, from.z);
-	
-}
-
-bool AStarGrid::are_points_connected(Vector3 from, Vector3 to, bool bidirectional) const {
-	return false;
-}
-
-void AStarGrid::resize(int w, int h, int d) {
-	grid.resize(w * h * d);
-}
-
-void AStarGrid::clear() {
-
-}
-
-PoolIntArray AStarGrid::get_id_path(int from_id, int to_id) {
-	return PoolIntArray();
-}
-
-AStarGrid::AStarGrid(int w, int h, int d) : width(w), height(h), depth(d) {
-	Error err = grid.resize(width * height * depth);
-	if (err != Error::OK) {
-		
-	}
-}
-
-AStarGrid::AStarGrid() : width(0), height(0), depth(0) {
-
-}
-
-AStarGrid::~AStarGrid() {
-	clear();
-}
-
 bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 	pass++;
@@ -480,6 +391,9 @@ PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &
 
 	PoolVector2Array path = {};
 	bool found_path = _solve(from_id, to_id);
+	if (!found_path) {
+		return path;
+	}
 
 	int cur_id = to_id;
 	while (cur_id != from_id) {
@@ -494,7 +408,7 @@ PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &
 
 }
 
-AStarGrid2D::AStarGrid2D() : width(0), height(0), pass(1) {
+AStarGrid2D::AStarGrid2D() : pass(1), width(0), height(0) {
 
 }
 

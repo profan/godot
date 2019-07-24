@@ -34,60 +34,9 @@
 #include "core/reference.h"
 #include "core/self_list.h"
 
-int euclidean_distance_between(int x1, int y1, int x2, int y2);
-
-class AStarGrid : public Reference {
-
-	GDCLASS(AStarGrid, Reference);
-
-	struct Node {
-		int f_score;
-		int g_score;
-		int neighbours[26];
-	};
-
-	int width;
-	int height;
-	int depth;
-	PoolVector<Node> grid;
-
-	bool _solve(int from_idx, int to_idx);
-
-protected:
-
-	static void _bind_methods();
-
-	virtual real_t _estimate_cost(int from_id, int to_id);
-	virtual real_t _compute_cost(int from_id, int to_id);
-
-public:
-
-	int position_to_index(Vector3) const;
-	int position_to_index(int x, int y, int z) const;
-	Vector3 index_to_position(int idx) const;
-
-	void connect_points(Vector3 from, Vector3 to, int cost, bool bidirectional = true);
-	void disconnect_points(Vector3 from, Vector3 to, bool bidirectional = true);
-	bool are_points_connected(Vector3 from, Vector3 to, bool bidirectional = true) const;
-
-	void resize(int w, int h, int d);
-	void clear();
-
-	int get_closest_point(const Vector3 &p_point) const;
-
-	PoolIntArray get_id_path(int from_id, int to_id); 
-
-	AStarGrid();
-	AStarGrid(int width, int height, int depth);
-	~AStarGrid();
-
-};
-
 class AStarGrid2D : public Reference {
 
 	GDCLASS(AStarGrid2D, Reference);
-
-	uint64_t pass;
 
 	const Vector2i neighbours[8] = {
 		{-1, 1},
@@ -108,6 +57,9 @@ class AStarGrid2D : public Reference {
 		int came_from;
 		real_t neighbours[8];
 	};
+
+
+	uint64_t pass;
 
 	int width;
 	int height;

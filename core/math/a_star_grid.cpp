@@ -34,9 +34,6 @@
 #include "core/script_language.h"
 #include "scene/scene_string_names.h"
 
-#include <algorithm>
-#include <vector>
-
 /* decoding morton codes
  *  graciously borrowed from: https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
  * with regards to fgiesen
@@ -98,7 +95,7 @@ uint32_t DecodeMorton2Y(uint32_t code) {
   return Compact1By1(code >> 1);
 }
 
-bool AStarGrid2D::_solve(int from_idx, int to_idx, bool use_std_vector) {
+bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 	pass++;
 
@@ -108,21 +105,17 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx, bool use_std_vector) {
 	bool found_path = false;
 
 	Vector<int> open_list;
-	std::vector<int> open_list_std;
 	SortArray<int, SortPath> sorter;
 	sorter.compare.nodes = writer;
 
 	begin_point->g_score = 0;
 	begin_point->f_score = _estimate_cost(from_idx, to_idx);
 
-	if (use_std_vector) open_list_std.push_back(from_idx);
-	else open_list.push_back(from_idx);
+	open_list.push_back(from_idx);
 
-	while ((use_std_vector && !open_list_std.empty()) || (!use_std_vector && !open_list.empty())) {
+	while (!open_list.empty()) {
 
-		int p_idx;
-		if (use_std_vector) p_idx = open_list_std[0];
-		else p_idx = open_list[0];
+		int p_idx = open_list[0];
 		Node* p = &writer[p_idx];
 		
 		if (p_idx == to_idx) {
@@ -131,14 +124,8 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx, bool use_std_vector) {
 		}
 
 		// remove the current point from the open list
-		if (use_std_vector) {
-			sorter.pop_heap(0, open_list_std.size(), open_list_std.data());
-			open_list_std.pop_back();
-		} else {
-			sorter.pop_heap(0, open_list.size(), open_list.ptrw());
-			open_list.remove(open_list.size() - 1);
-		}
-
+		sorter.pop_heap(0, open_list.size(), open_list.ptrw());
+		open_list.remove(open_list.size() - 1);
 		p->closed_pass = pass;
 
 		for (int n = 0; n < 8; ++n) {
@@ -159,11 +146,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx, bool use_std_vector) {
 			Node *n_ptr = &writer[n_idx];
 			if (n_ptr->open_pass != pass) {
 				n_ptr->open_pass = pass;
-				if (use_std_vector) {
-					open_list_std.push_back(n_idx);
-				} else {
-					open_list.push_back(n_idx);
-				}
+				open_list.push_back(n_idx);
 				new_point = true;
 			} else if (tentative_g_score >= grid[n_idx].g_score) {
 				continue;
@@ -174,11 +157,9 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx, bool use_std_vector) {
 			n_ptr->f_score = n_ptr->g_score + _estimate_cost(n_idx, to_idx);
 
 			if (new_point) {
-				if (use_std_vector) sorter.push_heap(0, open_list_std.size() - 1, 0, n_idx, open_list_std.data());
-				else sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
+				sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
 			} else {
-				if (use_std_vector) sorter.push_heap(0, std::distance(open_list_std.begin(), std::find(open_list_std.begin(), open_list_std.end(), n_idx)), 0, n_idx, open_list_std.data());
-				else sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
+				sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
 			}
 
 		}
@@ -205,7 +186,7 @@ void AStarGrid2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
 
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarGrid2D::get_closest_point);
-	ClassDB::bind_method(D_METHOD("get_grid_path", "from", "to", "use_std_vector"), &AStarGrid2D::get_grid_path, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_grid_path", "from", "to"), &AStarGrid2D::get_grid_path);
 
 	BIND_VMETHOD(MethodInfo(Variant::REAL, "_estimate_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "to_id")));
 	BIND_VMETHOD(MethodInfo(Variant::REAL, "_compute_cost", PropertyInfo(Variant::INT, "from_id"), PropertyInfo(Variant::INT, "n_id")));
@@ -471,7 +452,7 @@ Vector2 AStarGrid2D::get_closest_point(const Vector2 &point) const {
 
 }
 
-PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &to, bool use_std_vector) {
+PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &to) {
 
 	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
 	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, PoolVector2Array());
@@ -483,7 +464,7 @@ PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &
 	int to_id = position_to_index(to);
 
 	PoolVector2Array path = {};
-	bool found_path = _solve(from_id, to_id, use_std_vector);
+	bool found_path = _solve(from_id, to_id);
 	if (!found_path) {
 		return path;
 	}

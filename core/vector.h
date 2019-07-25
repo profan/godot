@@ -61,11 +61,28 @@ public:
 
 private:
 	CowData<T> _cowdata;
+	int _size;
 
 public:
 	bool push_back(const T &p_elem);
 
-	void remove(int p_index) { _cowdata.remove(p_index); }
+	void remove(int p_index) {
+
+		ERR_FAIL_INDEX(p_index, size());
+		T *p = _cowdata.ptrw();
+		int len = size();
+		for (int i = p_index; i < len - 1; i++) {
+
+			p[i] = p[i + 1];
+		};
+
+		if (!__has_trivial_destructor(T)) {
+			(&p[_size])->~T();
+		}
+		_size--;
+
+	}
+
 	void erase(const T &p_val) {
 		int idx = find(p_val);
 		if (idx >= 0) remove(idx);
@@ -74,16 +91,81 @@ public:
 
 	_FORCE_INLINE_ T *ptrw() { return _cowdata.ptrw(); }
 	_FORCE_INLINE_ const T *ptr() const { return _cowdata.ptr(); }
-	_FORCE_INLINE_ void clear() { resize(0); }
-	_FORCE_INLINE_ bool empty() const { return _cowdata.empty(); }
+	_FORCE_INLINE_ void clear() {
+		_size = 0;
+		resize(0);
+	}
+	_FORCE_INLINE_ bool empty() const { return _size == 0; }
 
 	_FORCE_INLINE_ T get(int p_index) { return _cowdata.get(p_index); }
 	_FORCE_INLINE_ const T get(int p_index) const { return _cowdata.get(p_index); }
 	_FORCE_INLINE_ void set(int p_index, const T &p_elem) { _cowdata.set(p_index, p_elem); }
-	_FORCE_INLINE_ int size() const { return _cowdata.size(); }
-	Error resize(int p_size) { return _cowdata.resize(p_size); }
+	_FORCE_INLINE_ int capacity() const { return _cowdata.size(); }
+	_FORCE_INLINE_ int size() const { return _size; }
+	Error resize(int p_size) {
+
+		if (p_size > capacity()) {
+			_size = p_size;
+			Error err = _cowdata.resize(p_size);
+			return err;
+		} else if (p_size < size()) {
+			for (int i = p_size; i < size(); ++i) {
+				if (!__has_trivial_destructor(T)) {
+					(&_cowdata.ptrw()[i])->~T();
+				}
+			}
+			_size = p_size;
+		} else if (p_size > size()) {
+			for (int i = size(); i < p_size; ++i) {
+				if (!__has_trivial_constructor(T)) {
+					memnew_placement(&_cowdata.ptrw()[i], T);
+				}
+			}
+			_size = p_size;
+		}
+
+		return Error::OK;
+
+	}
+	Error reserve(int p_size) {
+
+		if (p_size < _size) {
+			_size = p_size;
+		}
+
+		if (p_size > capacity()) {
+			return _cowdata.resize(p_size);
+		} else if (p_size < size()) {
+			for (int i = size(); i < p_size; ++i) {
+				if (!__has_trivial_destructor(T)) {
+					(&_cowdata.ptrw()[i])->~T();
+				}
+			}
+		} else if (p_size > size()) {
+			for (int i = size(); i < p_size; ++i) {
+				if (!__has_trivial_constructor(T)) {
+					memnew_placement(&(_cowdata.ptrw()[i]), T);
+				}
+			}
+		}
+		
+		return Error::OK;
+
+	}
 	_FORCE_INLINE_ const T &operator[](int p_index) const { return _cowdata.get(p_index); }
-	Error insert(int p_pos, const T &p_val) { return _cowdata.insert(p_pos, p_val); }
+	Error insert(int p_pos, const T &p_val) {
+		
+		ERR_FAIL_INDEX_V(p_pos, size() + 1, ERR_INVALID_PARAMETER);
+		reserve(size() + 1);
+		for (int i = (size() - 1); i > p_pos; i--)
+			set(i, get(i - 1));
+		set(p_pos, p_val);
+
+		_size++;
+
+		return OK;
+
+	}
 	int find(const T &p_val, int p_from = 0) const { return _cowdata.find(p_val, p_from); }
 
 	void append_array(const Vector<T> &p_other);
@@ -107,7 +189,7 @@ public:
 
 	void ordered_insert(const T &p_val) {
 		int i;
-		for (i = 0; i < _cowdata.size(); i++) {
+		for (i = 0; i < size(); i++) {
 
 			if (p_val < operator[](i)) {
 				break;
@@ -116,9 +198,13 @@ public:
 		insert(i, p_val);
 	}
 
-	_FORCE_INLINE_ Vector() {}
-	_FORCE_INLINE_ Vector(const Vector &p_from) { _cowdata._ref(p_from._cowdata); }
+	_FORCE_INLINE_ Vector() : _size(0) {}
+	_FORCE_INLINE_ Vector(const Vector &p_from) { 
+		_size = p_from._size;
+		_cowdata._ref(p_from._cowdata);
+	}
 	inline Vector &operator=(const Vector &p_from) {
+		_size = p_from._size;
 		_cowdata._ref(p_from._cowdata);
 		return *this;
 	}
@@ -131,27 +217,42 @@ void Vector<T>::invert() {
 
 	for (int i = 0; i < size() / 2; i++) {
 		T *p = ptrw();
-		SWAP(p[i], p[size() - i - 1]);
+		SWAP(p[i], p[size() - i]);
 	}
 }
 
 template <class T>
 void Vector<T>::append_array(const Vector<T> &p_other) {
+
 	const int ds = p_other.size();
-	if (ds == 0)
-		return;
+	if (ds == 0) return;
+
 	const int bs = size();
-	resize(bs + ds);
-	for (int i = 0; i < ds; ++i)
+	if (bs + ds > capacity()) {
+		reserve(bs + ds);
+	}
+
+	for (int i = 0; i < ds; ++i) {
 		ptrw()[bs + i] = p_other[i];
+		_size++;
+	}
+	
 }
 
 template <class T>
 bool Vector<T>::push_back(const T &p_elem) {
 
-	Error err = resize(size() + 1);
-	ERR_FAIL_COND_V(err, true);
-	set(size() - 1, p_elem);
+	if (size() == capacity()) {
+		Error err = reserve(size() + 1);
+		ERR_FAIL_COND_V(err, true);
+	}
+
+	if (!__has_trivial_constructor(T)) {
+		memnew_placement(&(_cowdata.ptrw()[size()]), T);
+	}
+
+	set(size(), p_elem);
+	_size++;
 
 	return false;
 }

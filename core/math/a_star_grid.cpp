@@ -104,6 +104,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 	bool found_path = false;
 
+	
 	Vector<int> open_list;
 	SortArray<int, SortPath> sorter;
 	sorter.compare.nodes = writer;
@@ -111,11 +112,9 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 	begin_point->g_score = 0;
 	begin_point->f_score = _estimate_cost(from_idx, to_idx);
 
-	int cur_open_idx = 0;
-	open_list.resize(4);
-	open_list.ptrw()[cur_open_idx++] = from_idx;
+	open_list.push_back(from_idx);
 
-	while (cur_open_idx != 0) {
+	while (!open_list.empty()) {
 
 		int p_idx = open_list[0];
 		Node* p = &writer[p_idx];
@@ -126,9 +125,8 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 		}
 
 		// remove the current point from the open list
-		sorter.pop_heap(0, cur_open_idx, open_list.ptrw());
-		cur_open_idx--;
-
+		sorter.pop_heap(0, open_list.size(), open_list.ptrw());
+		open_list.remove(open_list.size() - 1);
 		p->closed_pass = pass;
 
 		for (int n = 0; n < 8; ++n) {
@@ -149,11 +147,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			Node *n_ptr = &writer[n_idx];
 			if (n_ptr->open_pass != pass) {
 				n_ptr->open_pass = pass;
-				/* this is here because godot's vector otherwise reallocates on every single push and remove */
-				if (cur_open_idx == open_list.size()) {
-					open_list.resize(open_list.size() + 1);
-				}
-				open_list.ptrw()[cur_open_idx++] = n_idx;
+				open_list.push_back(n_idx);
 				new_point = true;
 			} else if (tentative_g_score >= grid[n_idx].g_score) {
 				continue;
@@ -164,7 +158,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 			n_ptr->f_score = n_ptr->g_score + _estimate_cost(n_idx, to_idx);
 
 			if (new_point) {
-				sorter.push_heap(0, cur_open_idx - 1, 0, n_idx, open_list.ptrw());
+				sorter.push_heap(0, open_list.size() - 1, 0, n_idx, open_list.ptrw());
 			} else {
 				sorter.push_heap(0, open_list.find(n_idx), 0, n_idx, open_list.ptrw());
 			}
@@ -470,7 +464,7 @@ PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &
 	int from_id = position_to_index(from);
 	int to_id = position_to_index(to);
 
-	PoolVector2Array path;
+	PoolVector2Array path = {};
 	bool found_path = _solve(from_id, to_id);
 	if (!found_path) {
 		return path;

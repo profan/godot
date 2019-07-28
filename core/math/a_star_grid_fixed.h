@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  a_star_grid.h                                                        */
+/*  a_star_grid_fixed.h                                                  */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,18 +28,35 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef ASTAR_GRID_H
-#define ASTAR_GRID_H
+#ifndef ASTAR_GRID_FIXED_H
+#define ASTAR_GRID_FIXED_H
 
-#include "core/oa_hash_map.h"
 #include "core/reference.h"
 #include "core/self_list.h"
 
-#include "core/math/a_star_grid_fixed.h"
+uint32_t EncodeMorton2(uint32_t x, uint32_t y);
 
-class AStarGrid2D : public Reference {
+uint32_t EncodeMorton3(uint32_t x, uint32_t y, uint32_t z);
 
-	GDCLASS(AStarGrid2D, Reference);
+// "Insert" a 0 bit after each of the 16 low bits of x
+uint32_t Part1By1(uint32_t x);
+
+// "Insert" two 0 bits after each of the 10 low bits of x
+uint32_t Part1By2(uint32_t x);
+
+// Inverse of Part1By1 - "delete" all odd-indexed bits
+uint32_t Compact1By1(uint32_t x);
+
+// Inverse of Part1By2 - "delete" all bits not at positions divisible by 3
+uint32_t Compact1By2(uint32_t x);
+
+uint32_t DecodeMorton2X(uint32_t code);
+
+uint32_t DecodeMorton2Y(uint32_t code);
+
+class AStarGridFixed2D : public Reference {
+
+	GDCLASS(AStarGridFixed2D, Reference);
 
 	const Vector2i neighbours[8] = {
 		{-1, 1},
@@ -61,12 +78,11 @@ class AStarGrid2D : public Reference {
 		real_t neighbours[8];
 	};
 
+
 	uint64_t pass;
 
 	int width;
 	int height;
-	int chunk_width;
-	int chunk_height;
 	PoolVector<Node> grid;
 
 	bool _solve(int from_idx, int to_idx);
@@ -115,9 +131,9 @@ public:
 	Vector2 get_closest_point(const Vector2 &p_point) const;
 	PoolVector2Array get_grid_path(const Vector2 &from, const Vector2 &to);
 
-	AStarGrid2D();
-	~AStarGrid2D();
+	AStarGridFixed2D();
+	~AStarGridFixed2D();
 
 };
 
-#endif // ASTAR_GRID_H
+#endif // ASTAR_GRID_FIXED_H

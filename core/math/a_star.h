@@ -31,6 +31,7 @@
 #ifndef ASTAR_H
 #define ASTAR_H
 
+#include "core/oa_hash_map.h"
 #include "core/reference.h"
 #include "core/self_list.h"
 

@@ -479,6 +479,7 @@ PoolVector2Array AStarGridFixed2D::get_grid_path(const Vector2 &from, const Vect
 	}
 	
 	path.push_back(index_to_position(from_id));
+	path.invert();
 
 	return path;
 

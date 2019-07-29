@@ -410,7 +410,7 @@ void AStarGridFixed2D::set_point_enabled(const Vector2 &point, bool state) {
 
 }
 
-bool AStarGridFixed2D::is_point_enabled(const Vector2 &point) {
+bool AStarGridFixed2D::is_point_enabled(const Vector2 &point) const {
 
 	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
 	ERR_FAIL_COND_V(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height, false);
@@ -450,7 +450,7 @@ void AStarGridFixed2D::clear() {
 		writer[i].closed_pass = 0;
 		writer[i].f_score = __INT_MAX__;
 		writer[i].g_score = __INT_MAX__;
-		writer[i].enabled = false;
+		writer[i].enabled = true;
 		for (int n = 0; n < 8; ++n) {
 			writer[i].neighbours[n] = -1;
 		}

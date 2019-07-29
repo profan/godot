@@ -127,7 +127,7 @@ public:
 	void disconnect_from_neighbours(const Vector2 &point);
 
 	void set_point_enabled(const Vector2 &point, bool enabled);
-	bool is_point_enabled(const Vector2 &point);
+	bool is_point_enabled(const Vector2 &point) const;
 
 	void resize(int w, int h);
 	void clear();

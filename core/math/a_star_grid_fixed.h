@@ -76,6 +76,7 @@ class AStarGridFixed2D : public Reference {
 		real_t g_score;
 		int came_from;
 		real_t neighbours[8];
+		bool enabled;
 	};
 
 
@@ -124,6 +125,9 @@ public:
 	PoolIntArray get_neighbour_costs(const Vector2 &point) const;
 	void connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals = true);
 	void disconnect_from_neighbours(const Vector2 &point);
+
+	void set_point_enabled(const Vector2 &point, bool enabled);
+	bool is_point_enabled(const Vector2 &point);
 
 	void resize(int w, int h);
 	void clear();

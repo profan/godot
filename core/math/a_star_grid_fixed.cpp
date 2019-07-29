@@ -139,7 +139,7 @@ bool AStarGridFixed2D::_solve(int from_idx, int to_idx) {
 			int n_idx = position_to_index(n_x, n_y);
 
 			// out of bounds or already handled
-			if (n_idx == -1 || grid[n_idx].closed_pass == pass) continue;
+			if (n_idx == -1 || grid[n_idx].closed_pass == pass || !grid[n_idx].enabled) continue;
 
 			real_t tentative_g_score = p->g_score + _compute_cost(p_idx, n);
 			bool new_point = false;
@@ -183,6 +183,9 @@ void AStarGridFixed2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("connect_to_neighbours", "point", "cost", "diagonals"), &AStarGridFixed2D::connect_to_neighbours, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_from_neighbours", "point"), &AStarGridFixed2D::disconnect_from_neighbours);
 
+	ClassDB::bind_method(D_METHOD("set_point_enabled", "point", "enabled"), &AStarGridFixed2D::set_point_enabled);
+	ClassDB::bind_method(D_METHOD("is_point_enabled", "point"), &AStarGridFixed2D::is_point_enabled);
+
 	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGridFixed2D::resize);
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGridFixed2D::clear);
 
@@ -196,8 +199,9 @@ void AStarGridFixed2D::_bind_methods() {
 
 real_t AStarGridFixed2D::_estimate_cost(int from_id, int to_id) {
 
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_estimate_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_estimate_cost, from_id, to_id);
+	ScriptInstance *instance = get_script_instance();
+	if (instance && instance->has_method(SceneStringNames::get_singleton()->_estimate_cost))
+		return instance->call(SceneStringNames::get_singleton()->_estimate_cost, from_id, to_id);
 
 	return index_to_position(from_id).distance_to(index_to_position(to_id));
 
@@ -205,8 +209,9 @@ real_t AStarGridFixed2D::_estimate_cost(int from_id, int to_id) {
 
 real_t AStarGridFixed2D::_compute_cost(int from_id, int n_id) {
 	
-	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_compute_cost))
-		return get_script_instance()->call(SceneStringNames::get_singleton()->_compute_cost, from_id, n_id);
+	ScriptInstance *instance = get_script_instance();
+	if (instance && instance->has_method(SceneStringNames::get_singleton()->_compute_cost))
+		return instance->call(SceneStringNames::get_singleton()->_compute_cost, from_id, n_id);
 
 	return grid[from_id].neighbours[n_id];
 
@@ -251,6 +256,7 @@ int AStarGridFixed2D::position_to_index(int x, int y) const {
 
 Vector2 AStarGridFixed2D::index_to_position(int idx) const {
 
+	ERR_EXPLAIN("index passed must be positive, was: " + itos(idx));
 	ERR_FAIL_COND_V(idx < 0, Vector2(0, 0));
 
 	int x = DecodeMorton2X(idx);
@@ -395,6 +401,24 @@ void AStarGridFixed2D::disconnect_from_neighbours(const Vector2 &point) {
 
 }
 
+void AStarGridFixed2D::set_point_enabled(const Vector2 &point, bool state) {
+
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
+	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
+
+	grid.write()[position_to_index(point)].enabled = true;
+
+}
+
+bool AStarGridFixed2D::is_point_enabled(const Vector2 &point) {
+
+	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
+	ERR_FAIL_COND_V(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height, false);
+
+	return grid[position_to_index(point)].enabled;
+
+}
+
 void AStarGridFixed2D::resize(int w, int h) {
 
 	ERR_EXPLAIN("grid dimensions must be less than 32768x32768, got: (" + itos(w) + "x" + itos(h) + ")");
@@ -426,6 +450,7 @@ void AStarGridFixed2D::clear() {
 		writer[i].closed_pass = 0;
 		writer[i].f_score = __INT_MAX__;
 		writer[i].g_score = __INT_MAX__;
+		writer[i].enabled = false;
 		for (int n = 0; n < 8; ++n) {
 			writer[i].neighbours[n] = -1;
 		}

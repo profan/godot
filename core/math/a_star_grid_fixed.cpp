@@ -494,14 +494,26 @@ PoolVector2Array AStarGridFixed2D::get_grid_path(const Vector2 &from, const Vect
 		return path;
 	}
 
+	{
+		int path_len = 0;
+		int cur_id = to_id;
+		while (cur_id != from_id) {
+			int came_from_id = grid[cur_id].came_from;
+			cur_id = came_from_id;
+			path_len++;
+		}
+		path.resize(path_len + 1);
+	}
+
+	int i = 0;
 	int cur_id = to_id;
+	PoolVector2Array::Write path_w = path.write();
 	while (cur_id != from_id) {
 		int came_from_id = grid[cur_id].came_from;
-		path.push_back(index_to_position(cur_id));
+		path_w[i++] = index_to_position(cur_id);
 		cur_id = came_from_id;
 	}
-	
-	path.push_back(index_to_position(from_id));
+	path_w[i++] = index_to_position(from_id);
 	path.invert();
 
 	return path;

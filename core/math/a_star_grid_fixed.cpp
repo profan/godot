@@ -101,9 +101,7 @@ bool AStarGridFixed2D::_solve(int from_idx, int to_idx) {
 
 	Node *writer = grid.write().ptr();
 	Node *begin_point = &writer[from_idx];
-
 	bool found_path = false;
-
 	
 	Vector<int> open_list;
 	SortArray<int, SortPath> sorter;
@@ -116,7 +114,7 @@ bool AStarGridFixed2D::_solve(int from_idx, int to_idx) {
 
 	while (!open_list.empty()) {
 
-		int p_idx = open_list[0];
+		const int p_idx = open_list[0];
 		Node* p = &writer[p_idx];
 		
 		if (p_idx == to_idx) {
@@ -134,14 +132,14 @@ bool AStarGridFixed2D::_solve(int from_idx, int to_idx) {
 			// skip unconnected edge, not a neighbour
 			if (p->neighbours[n] == -1) continue;
 
-			int n_x = DecodeMorton2X(p_idx) + neighbours[n].x;
-			int n_y = DecodeMorton2Y(p_idx) + neighbours[n].y;
-			int n_idx = position_to_index(n_x, n_y);
+			const int n_x = DecodeMorton2X(p_idx) + neighbours[n].x;
+			const int n_y = DecodeMorton2Y(p_idx) + neighbours[n].y;
+			const int n_idx = position_to_index(n_x, n_y);
 
 			// out of bounds or already handled
 			if (n_idx == -1 || grid[n_idx].closed_pass == pass || !grid[n_idx].enabled) continue;
 
-			real_t tentative_g_score = p->g_score + _compute_cost(p_idx, n);
+			const real_t tentative_g_score = p->g_score + _compute_cost(p_idx, n);
 			bool new_point = false;
 
 			Node *n_ptr = &writer[n_idx];
@@ -259,8 +257,8 @@ Vector2 AStarGridFixed2D::index_to_position(int idx) const {
 	ERR_EXPLAIN("index passed must be positive, was: " + itos(idx));
 	ERR_FAIL_COND_V(idx < 0, Vector2(0, 0));
 
-	int x = DecodeMorton2X(idx);
-	int y = DecodeMorton2Y(idx);
+	const int x = DecodeMorton2X(idx);
+	const int y = DecodeMorton2Y(idx);
 
 	return Vector2(x, y);
 
@@ -277,11 +275,11 @@ bool AStarGridFixed2D::connect_points(const Vector2 &from, const Vector2 &to, re
 	ERR_EXPLAIN("edge cost must be non-negative");
 	ERR_FAIL_COND_V(cost < 0, false);
 
-	int from_idx = position_to_index(from.x, from.y);
-	int to_idx = position_to_index(to.x, to.y);
+	const int from_idx = position_to_index(from.x, from.y);
+	const int to_idx = position_to_index(to.x, to.y);
 
 	Vector2 n_offset = from - to;
-	int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
+	const int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
 	if (to_n == -1) {
 		return false;
 	} else {
@@ -289,8 +287,8 @@ bool AStarGridFixed2D::connect_points(const Vector2 &from, const Vector2 &to, re
 	}
 
 	if (bidirectional) {
-		Vector2 other_n_offset = to - from;
-		int from_n = offset_to_neighbour(other_n_offset.x, other_n_offset.y);
+		const Vector2 other_n_offset = to - from;
+		const int from_n = offset_to_neighbour(other_n_offset.x, other_n_offset.y);
 		if (from_n == -1) {
 			return false;
 		} else {
@@ -310,11 +308,11 @@ void AStarGridFixed2D::disconnect_points(const Vector2 &from, const Vector2 &to,
 	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height);
 
-	int from_idx = position_to_index(from.x, from.y);
-	int to_idx = position_to_index(to.x, to.y);
+	const int from_idx = position_to_index(from.x, from.y);
+	const int to_idx = position_to_index(to.x, to.y);
 
-	Vector2 n_offset = to - from;
-	int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
+	const Vector2 n_offset = to - from;
+	const int to_n = offset_to_neighbour(n_offset.x, n_offset.y);
 	if (to_n == -1) {
 		return;
 	} else {
@@ -322,8 +320,8 @@ void AStarGridFixed2D::disconnect_points(const Vector2 &from, const Vector2 &to,
 	}
 
 	if (bidirectional) {
-		Vector2 other_n_offset = from - to;
-		int from_n = offset_to_neighbour(other_n_offset.x, other_n_offset.y);
+		const Vector2 other_n_offset = from - to;
+		const int from_n = offset_to_neighbour(other_n_offset.x, other_n_offset.y);
 		if (from_n == -1) {
 			return;
 		} else {
@@ -341,10 +339,10 @@ bool AStarGridFixed2D::are_points_connected(const Vector2 &from, const Vector2 &
 	ERR_EXPLAIN("expected value within bounds of grid  (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, false);
 
-	Vector2 delta = to - from;
-	int n_id = offset_to_neighbour(delta.x, delta.y);
+	const Vector2 delta = to - from;
+	const int n_id = offset_to_neighbour(delta.x, delta.y);
 	if (n_id != -1) {
-		int from_id = position_to_index(from);
+		const int from_id = position_to_index(from);
 		return grid[from_id].neighbours[n_id] != -1;
 	}
 
@@ -357,7 +355,7 @@ real_t AStarGridFixed2D::get_neighbour_cost(const Vector2 &point, int n_id) cons
 	ERR_EXPLAIN("expected neighbour index between 0 and 8, was out of bounds at: " + itos(n_id));
 	ERR_FAIL_COND_V(n_id < 0 || n_id > 8, -1);
 
-	int p_id = position_to_index(point);
+	const int p_id = position_to_index(point);
 	return grid[p_id].neighbours[n_id];
 	
 }
@@ -372,7 +370,7 @@ void AStarGridFixed2D::connect_to_neighbours(const Vector2 &point, real_t cost, 
 	ERR_FAIL_COND(cost < 0);
 
 	for (int n = 0; n < 8; ++n) {
-		Vector2 n_pos = point + neighbours[n];
+		const Vector2 n_pos = point + neighbours[n];
 		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
 			continue;
 		} else {
@@ -391,7 +389,7 @@ void AStarGridFixed2D::disconnect_from_neighbours(const Vector2 &point) {
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 
 	for (int n = 0; n < 8; ++n) {
-		Vector2 n_pos = point + neighbours[n];
+		const Vector2 n_pos = point + neighbours[n];
 		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
 			continue;
 		} else {
@@ -487,11 +485,11 @@ PoolVector2Array AStarGridFixed2D::get_grid_path(const Vector2 &from, const Vect
 	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
 	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, PoolVector2Array());
 	
-	int from_id = position_to_index(from);
-	int to_id = position_to_index(to);
+	const int from_id = position_to_index(from);
+	const int to_id = position_to_index(to);
 
 	PoolVector2Array path = {};
-	bool found_path = _solve(from_id, to_id);
+	const bool found_path = _solve(from_id, to_id);
 	if (!found_path) {
 		return path;
 	}

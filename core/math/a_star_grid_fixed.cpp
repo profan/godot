@@ -363,7 +363,7 @@ real_t AStarGridFixed2D::get_neighbour_cost(const Vector2 &point, int n_id) cons
 void AStarGridFixed2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals) {
 
 	// ERR_EXPLAIN([=](){ exit(-1); return "Hello, World!"; }());
-	ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
+	// ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for point, was out of bounds at (" + String(point) + ")");
 	ERR_FAIL_COND(point.x < 0 || point.x >= width || point.y < 0 || point.y >= height);
 
 	// ERR_EXPLAIN("edge cost must be non-negative, was: " + rtos(cost));

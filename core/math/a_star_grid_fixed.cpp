@@ -458,7 +458,17 @@ void AStarGridFixed2D::clear() {
 
 Vector2 AStarGridFixed2D::get_closest_point(const Vector2 &point) const {
 
-	/* intersect with Rect2 of grid */
+	/* intersect with Rect2 of grid ******/
+	/*                                   */
+	/*  x (start point)                  */
+	/*   \                               */
+	/*    \                              */
+	/*   *-x-----*                       */
+	/*   |       |  (grid)               */
+	/*   |       |                       */
+	/*   *-------*                       */
+	/*************************************/
+	
 	if (point.x < 0 || point.x >= width || point.y < 0 || point.y >= height) {
 
 		Vector2 center = Vector2(width / 2, height / 2);

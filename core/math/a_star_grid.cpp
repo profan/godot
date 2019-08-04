@@ -68,7 +68,7 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 		open_list.remove(open_list.size() - 1);
 		p->closed_pass = pass;
 
-		for (int n = 0; n < 8; ++n) {
+		for (int n = 0; n < 4; ++n) {
 
 			// skip unconnected edge, not a neighbour
 			if (p->neighbours[n] == -1) continue;
@@ -110,6 +110,27 @@ bool AStarGrid2D::_solve(int from_idx, int to_idx) {
 
 }
 
+AStarGrid2D::Node AStarGrid2D::resolve_to_chunk(int x, int y) {
+
+	AStarGrid2D::Node found_node;
+	bool lookup_result = grid.lookup(Vector2i(x, y), found_node);
+	if (lookup_result) {
+		return found_node;
+	} else {
+		Node new_node;
+		new_node.came_from = -1;
+		new_node.closed_pass = 0;
+		new_node.open_pass = 0;
+		new_node.f_score = __FLT_MAX__;
+		new_node.g_score = __FLT_MAX__;
+		AStarGridFixed2D *new_grid = memnew(AStarGridFixed2D);
+		new_grid->resize(chunk_width, chunk_height);
+		new_node.grid = new_grid;
+		return new_node;
+	}
+
+}
+
 void AStarGrid2D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("offset_to_neighbour", "x", "y"), &AStarGrid2D::offset_to_neighbour);
@@ -122,7 +143,6 @@ void AStarGrid2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("connect_to_neighbours", "point", "cost", "diagonals"), &AStarGrid2D::connect_to_neighbours, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_from_neighbours", "point"), &AStarGrid2D::disconnect_from_neighbours);
 
-	ClassDB::bind_method(D_METHOD("resize", "w", "h"), &AStarGrid2D::resize);
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
 
 	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarGrid2D::get_closest_point);
@@ -153,22 +173,14 @@ real_t AStarGrid2D::_compute_cost(int from_id, int n_id) {
 
 int AStarGrid2D::offset_to_neighbour(int x, int y) const {
 
-	if (x == -1 && y == 1) {
+	if (x == 0 && y == 1) {
 		return 0;
-	} else if (x == 0 && y == 1) {
-		return 1;
-	} else if (x == 1 && y == 1) {
-		 return 2;
 	} else if (x == 1 && y == 0) {
-		return 3;
-	} else if (x == 1 && y == -1) {
-		return 4;
+		return 1;
 	} else if (x == 0 && y == -1) {
-		return 5;
-	} else if (x == -1 && y == -1) {
-		return 6;
+		return 2;
 	} else if (x == -1 && y == 0) {
-		return 7;
+		return 3;
 	} else {
 		return -1;
 	}
@@ -279,10 +291,12 @@ real_t AStarGrid2D::get_neighbour_cost(const Vector2 &point, int n_id) const {
 
 void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals) {
 
-	// ERR_EXPLAIN("edge cost must be non-negative, was: " + rtos(cost));
+	ERR_EXPLAIN("edge cost must be non-negative, was: " + rtos(cost));
 	ERR_FAIL_COND(cost < 0);
 
-	for (int n = 0; n < 8; ++n) {
+	Node chunk = _resolve_to_chunk(point.x, point.y);
+
+	for (int n = 0; n < 4; ++n) {
 		Vector2 n_pos = point + neighbours[n];
 		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
 			continue;
@@ -298,7 +312,9 @@ void AStarGrid2D::connect_to_neighbours(const Vector2 &point, real_t cost, bool 
 /* disconnect the point from all its neighbours, and all its neighbours from the point */
 void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 
-	for (int n = 0; n < 8; ++n) {
+	Node chunk = _resolve_to_chunk(point.x, point.y);
+
+	for (int n = 0; n < 4; ++n) {
 		Vector2 n_pos = point + neighbours[n];
 		if (n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height) {
 			continue;
@@ -306,27 +322,6 @@ void AStarGrid2D::disconnect_from_neighbours(const Vector2 &point) {
 			disconnect_points(point, n_pos);
 		}
 	}
-
-}
-
-void AStarGrid2D::resize(int w, int h) {
-
-	// ERR_EXPLAIN("grid dimensions must be less than 32768x32768, got: (" + itos(w) + "x" + itos(h) + ")");
-	ERR_FAIL_COND(w > INT16_MAX && h > INT16_MAX);
-
-	// ERR_EXPLAIN("grid size dimensions must be positive, got: (" + itos(w) + "x" + itos(h) + ")");
-	ERR_FAIL_COND(w < 0 || h < 0);
-
-	int next_pot_w = next_power_of_2(w);
-	int next_pot_h = next_power_of_2(h);
-	int max_power = MAX(next_pot_w, next_pot_h);
-	next_pot_w = next_pot_h = max_power;
-
-	grid.resize(next_pot_w * next_pot_h);
-	width = next_pot_w;
-	height = next_pot_h;
-
-	clear();
 
 }
 
@@ -369,12 +364,6 @@ Vector2 AStarGrid2D::get_closest_point(const Vector2 &point) const {
 }
 
 PoolVector2Array AStarGrid2D::get_grid_path(const Vector2 &from, const Vector2 &to) {
-
-	// ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for from, was out of bounds at (" + String(from) + ")");
-	ERR_FAIL_COND_V(from.x < 0 || from.x >= width || from.y < 0 || from.y >= height, PoolVector2Array());
-
-	// ERR_EXPLAIN("expected value within bounds of grid (" + itos(width) + "x" + itos(height) + ") for to, was out of bounds at (" + String(to) + ")");
-	ERR_FAIL_COND_V(to.x < 0 || to.x >= width || to.y < 0 || to.y >= height, PoolVector2Array());
 	
 	int from_id = position_to_index(from);
 	int to_id = position_to_index(to);

@@ -41,14 +41,10 @@ class AStarGrid2D : public Reference {
 
 	GDCLASS(AStarGrid2D, Reference);
 
-	const Vector2i neighbours[8] = {
-		{-1, 1},
+	const Vector2i neighbours[4] = {
 		{0, 1},
-		{1, 1},
 		{1, 0},
-		{1, -1},
 		{0, -1},
-		{-1, -1},
 		{-1, 0}
 	};
 
@@ -58,7 +54,8 @@ class AStarGrid2D : public Reference {
 		real_t f_score;
 		real_t g_score;
 		int came_from;
-		real_t neighbours[8];
+		real_t neighbours[4];
+		AStarGridFixed2D *grid;
 	};
 
 	uint64_t pass;
@@ -67,9 +64,10 @@ class AStarGrid2D : public Reference {
 	int height;
 	int chunk_width;
 	int chunk_height;
-	PoolVector<Node> grid;
+	OAHashMap<Vector2i, Node> grid;
 
 	bool _solve(int from_idx, int to_idx);
+	Node _resolve_to_chunk(int x, int y);
 
 	struct SortPath {
 		Node *nodes;
@@ -109,7 +107,6 @@ public:
 	void connect_to_neighbours(const Vector2 &point, real_t cost, bool diagonals = true);
 	void disconnect_from_neighbours(const Vector2 &point);
 
-	void resize(int w, int h);
 	void clear();
 
 	Vector2 get_closest_point(const Vector2 &p_point) const;

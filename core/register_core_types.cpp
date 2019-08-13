@@ -53,6 +53,7 @@
 #include "core/io/translation_loader_po.h"
 #include "core/io/xml_parser.h"
 #include "core/math/a_star.h"
+#include "core/math/a_star_thin.h"
 #include "core/math/expression.h"
 #include "core/math/geometry.h"
 #include "core/math/random_number_generator.h"
@@ -184,6 +185,7 @@ void register_core_types() {
 	ClassDB::register_class<PackedDataContainer>();
 	ClassDB::register_virtual_class<PackedDataContainerRef>();
 	ClassDB::register_class<AStar>();
+	ClassDB::register_class<AStarThin>();
 	ClassDB::register_class<AStar2D>();
 	ClassDB::register_class<EncodedObjectAsID>();
 	ClassDB::register_class<RandomNumberGenerator>();

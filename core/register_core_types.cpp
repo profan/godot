@@ -185,8 +185,9 @@ void register_core_types() {
 	ClassDB::register_class<PackedDataContainer>();
 	ClassDB::register_virtual_class<PackedDataContainerRef>();
 	ClassDB::register_class<AStar>();
-	ClassDB::register_class<AStarThin>();
 	ClassDB::register_class<AStar2D>();
+	ClassDB::register_class<AStarThin>();
+	ClassDB::register_class<AStarThin2D>();
 	ClassDB::register_class<EncodedObjectAsID>();
 	ClassDB::register_class<RandomNumberGenerator>();
 

@@ -485,3 +485,135 @@ AStarThin::~AStarThin() {
 	pass = 1;
 	clear();
 }
+
+/////////////////////////////////////////////////////////////
+
+int AStarThin2D::get_available_point_id() const {
+	return astar.get_available_point_id();
+}
+
+void AStarThin2D::add_point(int p_id, const Vector2 &p_pos, real_t p_weight_scale) {
+	astar.add_point(p_id, Vector3(p_pos.x, p_pos.y, 0), p_weight_scale);
+}
+
+Vector2 AStarThin2D::get_point_position(int p_id) const {
+	Vector3 p = astar.get_point_position(p_id);
+	return Vector2(p.x, p.y);
+}
+
+void AStarThin2D::set_point_position(int p_id, const Vector2 &p_pos) {
+	astar.set_point_position(p_id, Vector3(p_pos.x, p_pos.y, 0));
+}
+
+real_t AStarThin2D::get_point_weight_scale(int p_id) const {
+	return astar.get_point_weight_scale(p_id);
+}
+
+void AStarThin2D::set_point_weight_scale(int p_id, real_t p_weight_scale) {
+	astar.set_point_weight_scale(p_id, p_weight_scale);
+}
+
+void AStarThin2D::remove_point(int p_id) {
+	astar.remove_point(p_id);
+}
+
+bool AStarThin2D::has_point(int p_id) const {
+	return astar.has_point(p_id);
+}
+
+PoolVector<int> AStarThin2D::get_point_connections(int p_id) {
+	return astar.get_point_connections(p_id);
+}
+
+Array AStarThin2D::get_points() {
+	return astar.get_points();
+}
+
+void AStarThin2D::set_point_disabled(int p_id, bool p_disabled) {
+	astar.set_point_disabled(p_id, p_disabled);
+}
+
+bool AStarThin2D::is_point_disabled(int p_id) const {
+	return astar.is_point_disabled(p_id);
+}
+
+void AStarThin2D::connect_points(int p_id, int p_with_id, bool p_bidirectional) {
+	astar.connect_points(p_id, p_with_id, p_bidirectional);
+}
+
+void AStarThin2D::disconnect_points(int p_id, int p_with_id) {
+	astar.disconnect_points(p_id, p_with_id);
+}
+
+bool AStarThin2D::are_points_connected(int p_id, int p_with_id) const {
+	return astar.are_points_connected(p_id, p_with_id);
+}
+
+void AStarThin2D::clear() {
+	astar.clear();
+}
+
+int AStarThin2D::get_closest_point(const Vector2 &p_point) const {
+	return astar.get_closest_point(Vector3(p_point.x, p_point.y, 0));
+}
+
+Vector2 AStarThin2D::get_closest_position_in_segment(const Vector2 &p_point) const {
+	Vector3 p = astar.get_closest_position_in_segment(Vector3(p_point.x, p_point.y, 0));
+	return Vector2(p.x, p.y);
+}
+
+PoolVector<Vector2> AStarThin2D::get_point_path(int p_from_id, int p_to_id) {
+
+	PoolVector3Array pv = astar.get_point_path(p_from_id, p_to_id);
+	int size = pv.size();
+	PoolVector2Array path;
+	path.resize(size);
+	{
+		PoolVector<Vector3>::Read r = pv.read();
+		PoolVector<Vector2>::Write w = path.write();
+		for (int i = 0; i < size; i++) {
+			Vector3 p = r[i];
+			w[i] = Vector2(p.x, p.y);
+		}
+	}
+	return path;
+}
+
+PoolVector<int> AStarThin2D::get_id_path(int p_from_id, int p_to_id) {
+	return astar.get_id_path(p_from_id, p_to_id);
+}
+
+void AStarThin2D::_bind_methods() {
+
+	ClassDB::bind_method(D_METHOD("get_available_point_id"), &AStarThin2D::get_available_point_id);
+	ClassDB::bind_method(D_METHOD("add_point", "id", "position", "weight_scale"), &AStarThin2D::add_point, DEFVAL(1.0));
+	ClassDB::bind_method(D_METHOD("get_point_position", "id"), &AStarThin2D::get_point_position);
+	ClassDB::bind_method(D_METHOD("set_point_position", "id", "position"), &AStarThin2D::set_point_position);
+	ClassDB::bind_method(D_METHOD("get_point_weight_scale", "id"), &AStarThin2D::get_point_weight_scale);
+	ClassDB::bind_method(D_METHOD("set_point_weight_scale", "id", "weight_scale"), &AStarThin2D::set_point_weight_scale);
+	ClassDB::bind_method(D_METHOD("remove_point", "id"), &AStarThin2D::remove_point);
+	ClassDB::bind_method(D_METHOD("has_point", "id"), &AStarThin2D::has_point);
+	ClassDB::bind_method(D_METHOD("get_point_connections", "id"), &AStarThin2D::get_point_connections);
+	ClassDB::bind_method(D_METHOD("get_points"), &AStarThin2D::get_points);
+
+	ClassDB::bind_method(D_METHOD("set_point_disabled", "id", "disabled"), &AStarThin2D::set_point_disabled, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("is_point_disabled", "id"), &AStarThin2D::is_point_disabled);
+
+	ClassDB::bind_method(D_METHOD("connect_points", "id", "to_id", "bidirectional"), &AStarThin2D::connect_points, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("disconnect_points", "id", "to_id"), &AStarThin2D::disconnect_points);
+	ClassDB::bind_method(D_METHOD("are_points_connected", "id", "to_id"), &AStarThin2D::are_points_connected);
+
+	ClassDB::bind_method(D_METHOD("clear"), &AStarThin2D::clear);
+
+	ClassDB::bind_method(D_METHOD("get_closest_point", "to_position"), &AStarThin2D::get_closest_point);
+	ClassDB::bind_method(D_METHOD("get_closest_position_in_segment", "to_position"), &AStarThin2D::get_closest_position_in_segment);
+
+	ClassDB::bind_method(D_METHOD("get_point_path", "from_id", "to_id"), &AStarThin2D::get_point_path);
+	ClassDB::bind_method(D_METHOD("get_id_path", "from_id", "to_id"), &AStarThin2D::get_id_path);
+}
+
+AStarThin2D::AStarThin2D() {
+}
+
+AStarThin2D::~AStarThin2D() {
+}

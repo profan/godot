@@ -40,7 +40,7 @@ int AStarThin::get_available_point_id() const {
 		return 1;
 	}
 
-	return points.back().key() + 1;
+	return points.back()->key() + 1;
 }
 
 void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale) {
@@ -187,7 +187,7 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 	Point &p = points[p_id];
 
-	for (Set<int>::Element *E = p->neighbours.front(); E; E = E->next()) {
+	for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
 		point_list.push_back(E->get());
 	}
 
@@ -212,13 +212,13 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 
 	for (const Map<int, Point>::Element *E = points.front(); E; E = E->next()) {
 
-		Point &p = points[E->get()];
+		const Point &p = E->get();
 		if (!p.enabled)
 			continue; //Disabled points should not be considered
 		real_t d = p_point.distance_squared_to(p.pos);
 		if (closest_id < 0 || d < closest_dist) {
 			closest_dist = d;
-			closest_id = p.key();
+			closest_id = p.id;
 		}
 	}
 
@@ -291,7 +291,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 		open_list.remove(open_list.size() - 1);
 		p.closed_pass = pass; // Mark the point as closed
 
-		for (Set<int>::Element *E = p->neighbours.front(); E; E = E->next()) {
+		for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
 
 			Point &e = points[E->get()]; // The neighbour point
 
@@ -367,7 +367,7 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	// Midpoints
 	Point &p = end_point;
 	int pc = 1; // Begin point
-	while (p != begin_point) {
+	while (p.id != begin_point.id) {
 		pc++;
 		p = points[p.prev_point];
 	}
@@ -380,7 +380,7 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 
 		Point &p2 = end_point;
 		int idx = pc - 1;
-		while (p2 != begin_point) {
+		while (p2.id != begin_point.id) {
 			w[idx--] = p2.pos;
 			p2 = points[p2.prev_point];
 		}
@@ -399,14 +399,14 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 	Point &a = points[p_from_id];
 	Point &b = points[p_to_id];
 
-	if (a == b) {
+	if (a.id == b.id) {
 		PoolVector<int> ret;
 		ret.push_back(a.id);
 		return ret;
 	}
 
-	Point *begin_point = a;
-	Point *end_point = b;
+	Point &begin_point = a;
+	Point &end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
 

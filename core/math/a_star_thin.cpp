@@ -53,7 +53,7 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		pt.id = p_id;
 		pt.pos = p_pos;
 		pt.weight_scale = p_weight_scale;
-		pt.prev_point = NULL;
+		pt.prev_point = -1;
 		pt.open_pass = 0;
 		pt.closed_pass = 0;
 		pt.enabled = true;
@@ -138,14 +138,6 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 		b.unlinked_neighbours.insert(p_id);
 
 	Segment s(p_id, p_with_id);
-	if (s.from == p_id) {
-		s.from_point = p_id;
-		s.to_point = p_with_id;
-	} else {
-		s.from_point = p_with_id;
-		s.to_point = p_id;
-	}
-
 	segments.insert(s);
 }
 void AStarThin::disconnect_points(int p_id, int p_with_id) {
@@ -233,8 +225,8 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 
 	for (const Set<Segment>::Element *E = segments.front(); E; E = E->next()) {
 
-		Point &from_point = points[E->get().from_point];
-		Point &to_point = points[E->get().to_point];
+		const Point &from_point = points[E->get().from];
+		const Point &to_point = points[E->get().to];
 
 		if (!(from_point.enabled && to_point.enabled)) {
 			continue;
@@ -262,27 +254,30 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 	pass++;
 
-	if (!end_point->enabled)
+	if (!end_point.enabled) {
 		return false;
+	}
 
 	bool found_route = false;
 
 	Vector<int> open_list;
 	SortArray<int, SortPoints> sorter;
+	sorter.compare.points = &points;
 
 	begin_point.g_score = 0;
 	begin_point.f_score = _estimate_cost(begin_point.id, end_point.id);
 
-	open_list.push_back(begin_point);
+	open_list.push_back(begin_point.id);
 
 	while (true) {
 
-		if (open_list.size() == 0) // No path found
+		if (open_list.size() == 0) { // No path found
 			break;
+		}
 
 		Point &p = points[open_list[0]]; // The currently processed point
 
-		if (p == end_point) {
+		if (p.id == end_point.id) {
 			found_route = true;
 			break;
 		}
@@ -293,33 +288,33 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 		for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
 
-			Point &e = points[E->get()]; // The neighbour point
+			Point &e = points.find(E->get())->get(); // The neighbour point
 
-			if (!e->enabled || e->closed_pass == pass)
+			if (!e.enabled || e.closed_pass == pass) {
 				continue;
+			}
 
 			real_t tentative_g_score = p.g_score + _compute_cost(p.id, e.id) * e.weight_scale;
 
 			bool new_point = false;
 
 			if (e.open_pass != pass) { // The point wasn't inside the open list
-
 				e.open_pass = pass;
 				open_list.push_back(e.id);
 				new_point = true;
 			} else if (tentative_g_score >= e.g_score) { // The new path is worse than the previous
-
 				continue;
 			}
 
-			e.prev_point = p;
+			e.prev_point = p.id;
 			e.g_score = tentative_g_score;
 			e.f_score = e.g_score + _estimate_cost(e.id, end_point.id);
 
-			if (new_point) // The position of the new points is already known
-				sorter.push_heap(0, open_list.size() - 1, 0, e, open_list.ptrw());
-			else
-				sorter.push_heap(0, open_list.find(e.id), 0, e, open_list.ptrw());
+			if (new_point) { // The position of the new points is already known
+				sorter.push_heap(0, open_list.size() - 1, 0, e.id, open_list.ptrw());
+			} else {
+				sorter.push_heap(0, open_list.find(e.id), 0, e.id, open_list.ptrw());
+			}
 		}
 	}
 
@@ -350,7 +345,7 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	Point &a = points[p_from_id];
 	Point &b = points[p_to_id];
 
-	if (a == b) {
+	if (a.id == b.id) {
 		PoolVector<Vector3> ret;
 		ret.push_back(a.pos);
 		return ret;
@@ -360,11 +355,8 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	Point &end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
+	if (!found_route) return PoolVector<Vector3>();
 
-	if (!found_route)
-		return PoolVector<Vector3>();
-
-	// Midpoints
 	Point &p = end_point;
 	int pc = 1; // Begin point
 	while (p.id != begin_point.id) {
@@ -409,14 +401,11 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 	Point &end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
+	if (!found_route) return PoolVector<int>();
 
-	if (!found_route)
-		return PoolVector<int>();
-
-	// Midpoints
 	Point &p = end_point;
 	int pc = 1; // Begin point
-	while (p != begin_point) {
+	while (p.id != begin_point.id) {
 		pc++;
 		p = points[p.prev_point];
 	}
@@ -429,7 +418,7 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 
 		p = end_point;
 		int idx = pc - 1;
-		while (p != begin_point) {
+		while (p.id != begin_point.id) {
 			w[idx--] = p.id;
 			p = points[p.prev_point];
 		}

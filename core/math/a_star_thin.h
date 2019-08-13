@@ -67,13 +67,17 @@ class AStarThin : public Reference {
 	Map<int, Point> points;
 
 	struct SortPoints {
-		_FORCE_INLINE_ bool operator()(const Point *A, const Point *B) const { // Returns true when the Point A is worse than Point B
-			if (A->f_score > B->f_score)
+		Map<int, Point> *points;
+		_FORCE_INLINE_ bool operator()(const int a_id, const int b_id) const { // Returns true when the Point A is worse than Point B
+			const Point &A = (*points)[a_id];
+			const Point &B = (*points)[b_id];
+			if (A.f_score > B.f_score) {
 				return true;
-			else if (A->f_score < B->f_score)
+			} else if (A.f_score < B.f_score) {
 				return false;
-			else
-				return A->g_score < B->g_score; // If the f_costs are the same then prioritize the points that are further away from the start
+			} else {
+				return A.g_score < B.g_score; // If the f_costs are the same then prioritize the points that are further away from the start
+			}
 		}
 	};
 
@@ -85,9 +89,6 @@ class AStarThin : public Reference {
 			};
 			uint64_t key;
 		};
-
-		int from_point;
-		int to_point;
 
 		bool operator<(const Segment &p_s) const { return key < p_s.key; }
 		Segment() { key = 0; }

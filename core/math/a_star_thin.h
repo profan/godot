@@ -32,6 +32,7 @@
 #define ASTAR_THIN_H
 
 #include "core/reference.h"
+#include "core/oa_hash_map.h"
 
 /**
 	A* pathfinding algorithm
@@ -52,8 +53,8 @@ class AStarThin : public Reference {
 		real_t weight_scale;
 		bool enabled;
 
-		Set<int> neighbours;
-		Set<int> unlinked_neighbours;
+		OAHashMap<int, void> neighbours;
+		OAHashMap<int, void> unlinked_neighbours;
 
 		// Used for pathfinding
 		int prev_point;
@@ -63,7 +64,7 @@ class AStarThin : public Reference {
 		uint64_t closed_pass;
 	};
 
-	Map<int, Point> points;
+	OAHashMap<int, Point> points;
 
 	struct SortPoints {
 		Map<int, Point> *points;

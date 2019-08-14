@@ -209,7 +209,7 @@ public:
 
 		uint32_t pos = 0;
 		bool exists = _lookup_pos(p_key, pos);
-		ERR_FAIL_COND_V(!exists, TValue());
+		CRASH_COND(!exists);
 
 		return values[pos];
 

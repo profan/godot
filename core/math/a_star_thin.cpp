@@ -120,7 +120,7 @@ void AStarThin::remove_point(int p_id) {
 		n.unlinked_neighbours.erase(p_id);
 	}
 
-	points.erase(p_id);
+	points.remove(p_id);
 }
 
 void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
@@ -177,14 +177,12 @@ Array AStarThin::get_points() {
 PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 	ERR_FAIL_COND_V(!points.has(p_id), PoolVector<int>());
-
 	PoolVector<int> point_list;
 
-	Point &p = points[p_id];
-
-	OAHashMap<int, OAHashMap<int, bool>*> 
-	for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
-		point_list.push_back(E->get());
+	OAHashMap<int, bool>::Iterator it = edges[p_id]->iter();
+	while (it.valid) {
+		point_list.push_back(*it.key);
+		it = edges[p_id]->next_iter(it);
 	}
 
 	return point_list;

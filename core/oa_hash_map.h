@@ -215,20 +215,6 @@ public:
 
 	}
 
-	TValue& operator[](TKey &p_key) {
-
-		uint32_t pos = 0;
-		bool exists = _lookup_pos(p_key, pos);
-
-		if (!exists) {
-			insert(p_key, TValue());
-			pos = _lookup_pos(p_key, pos);
-		}
-
-		return values[pos];
-
-	}
-
 	TValue& operator[](const TKey &p_key) {
 
 		uint32_t pos = 0;

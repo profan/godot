@@ -40,7 +40,8 @@ int AStarThin::get_available_point_id() const {
 		return 1;
 	}
 
-	return points.back()->key() + 1;
+	// return points.back()->key() + 1;
+	return 0;
 }
 
 void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale) {
@@ -102,8 +103,8 @@ void AStarThin::remove_point(int p_id) {
 	for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
 
 		Point &n = points[E->get()];
-		Segment s(p_id, E->get());
-		segments.erase(s);
+		// Segment s(p_id, E->get());
+		// segments.erase(s);
 
 		n.neighbours.erase(p_id);
 		n.unlinked_neighbours.erase(p_id);
@@ -145,7 +146,7 @@ void AStarThin::disconnect_points(int p_id, int p_with_id) {
 	// Segment s(p_id, p_with_id);
 	// ERR_FAIL_COND(!segments.has(s));
 
-	segments.erase(s);
+	// segments.erase(s);
 
 	Point &a = points[p_id];
 	Point &b = points[p_with_id];
@@ -164,8 +165,10 @@ Array AStarThin::get_points() {
 
 	Array point_list;
 
-	for (const Map<int, Point>::Element *E = points.front(); E; E = E->next()) {
-		point_list.push_back(E->key());
+	OAHashMap<int, Point>::Iterator it = points.iter();
+	while (it.valid) {
+		point_list.push_back(*it.key);
+		it = points.next_iter(it);
 	}
 
 	return point_list;
@@ -179,6 +182,7 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 	Point &p = points[p_id];
 
+	OAHashMap<int, OAHashMap<int, bool>*> 
 	for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
 		point_list.push_back(E->get());
 	}
@@ -188,12 +192,14 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 bool AStarThin::are_points_connected(int p_id, int p_with_id) const {
 
-	Segment s(p_id, p_with_id);
-	return segments.has(s);
+	// Segment s(p_id, p_with_id);
+	// return segments.has(s);
+	return true;
 }
 
 void AStarThin::clear() {
 	// segments.clear();
+	edges.clear();
 	points.clear();
 }
 
@@ -201,17 +207,21 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 
 	int closest_id = -1;
 	real_t closest_dist = 1e20;
+	OAHashMap<int, Point>::Iterator it = points.iter();
 
-	for (const Map<int, Point>::Element *E = points.front(); E; E = E->next()) {
+	while (it.valid) {
 
-		const Point &p = E->get();
-		if (!p.enabled)
-			continue; //Disabled points should not be considered
-		real_t d = p_point.distance_squared_to(p.pos);
+		const Point *p = it.value;
+		if (!p->enabled) continue; // disabled points should not be considered.
+
+		real_t d = p_point.distance_squared_to(p->pos);
 		if (closest_id < 0 || d < closest_dist) {
 			closest_dist = d;
-			closest_id = p.id;
+			closest_id = p->id;
 		}
+
+		it = points.next_iter(it);
+
 	}
 
 	return closest_id;
@@ -223,6 +233,7 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 	bool found = false;
 	Vector3 closest_point;
 
+	/*
 	for (const Set<Segment>::Element *E = segments.front(); E; E = E->next()) {
 
 		const Point &from_point = points[E->get().from];
@@ -246,6 +257,7 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 			found = true;
 		}
 	}
+	*/
 
 	return closest_point;
 }
@@ -269,11 +281,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 	open_list.push_back(begin_point.id);
 
-	while (true) {
-
-		if (open_list.size() == 0) { // No path found
-			break;
-		}
+	while (!open_list.empty()) {
 
 		Point &p = points[open_list[0]]; // The currently processed point
 
@@ -286,9 +294,11 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 		open_list.remove(open_list.size() - 1);
 		p.closed_pass = pass; // Mark the point as closed
 
-		for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
+		OAHashMap<int, bool>::Iterator it = edges[p.id]->iter();
 
-			Point &e = points.find(E->get())->get(); // The neighbour point
+		while (it.valid) {
+			
+			Point &e = points[*it.value]; // The neighbour point
 
 			if (!e.enabled || e.closed_pass == pass) {
 				continue;
@@ -315,7 +325,11 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 			} else {
 				sorter.push_heap(0, open_list.find(e.id), 0, e.id, open_list.ptrw());
 			}
+
+			it = edges[p.id]->next_iter(it);
+			
 		}
+
 	}
 
 	return found_route;

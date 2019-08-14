@@ -112,8 +112,8 @@ void AStarThin::remove_point(int p_id) {
 	for (Set<int>::Element *E = p.unlinked_neighbours.front(); E; E = E->next()) {
 
 		Point &n = points[E->get()];
-		Segment s(p_id, E->get());
-		segments.erase(s);
+		// Segment s(p_id, E->get());
+		// segments.erase(s);
 
 		n.neighbours.erase(p_id);
 		n.unlinked_neighbours.erase(p_id);
@@ -137,13 +137,13 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 	else
 		b.unlinked_neighbours.insert(p_id);
 
-	Segment s(p_id, p_with_id);
-	segments.insert(s);
+	// Segment s(p_id, p_with_id);
+	// segments.insert(s);
 }
 void AStarThin::disconnect_points(int p_id, int p_with_id) {
 
-	Segment s(p_id, p_with_id);
-	ERR_FAIL_COND(!segments.has(s));
+	// Segment s(p_id, p_with_id);
+	// ERR_FAIL_COND(!segments.has(s));
 
 	segments.erase(s);
 
@@ -193,7 +193,7 @@ bool AStarThin::are_points_connected(int p_id, int p_with_id) const {
 }
 
 void AStarThin::clear() {
-	segments.clear();
+	// segments.clear();
 	points.clear();
 }
 

@@ -53,11 +53,8 @@ class AStarThin : public Reference {
 		real_t weight_scale;
 		bool enabled;
 
-		OAHashMap<int, void> neighbours;
-		OAHashMap<int, void> unlinked_neighbours;
-
 		// Used for pathfinding
-		int prev_point;
+		int prev_point; // TODO: move me out of the hot path later?
 		real_t g_score;
 		real_t f_score;
 		uint64_t open_pass;
@@ -65,6 +62,8 @@ class AStarThin : public Reference {
 	};
 
 	OAHashMap<int, Point> points;
+	OAHashMap<int, OAHashMap<int, bool>*> edges;
+	OAHashMap<int, int> path;
 
 	struct SortPoints {
 		Map<int, Point> *points;
@@ -80,29 +79,6 @@ class AStarThin : public Reference {
 			}
 		}
 	};
-
-	struct Segment {
-		union {
-			struct {
-				int32_t from;
-				int32_t to;
-			};
-			uint64_t key;
-		};
-
-		bool operator<(const Segment &p_s) const { return key < p_s.key; }
-		Segment() { key = 0; }
-		Segment(int p_from, int p_to) {
-			if (p_from > p_to) {
-				SWAP(p_from, p_to);
-			}
-
-			from = p_from;
-			to = p_to;
-		}
-	};
-
-	Set<Segment> segments;
 
 	bool _solve(Point &begin_point, Point &end_point);
 

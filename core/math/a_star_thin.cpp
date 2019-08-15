@@ -59,6 +59,7 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		pt.closed_pass = 0;
 		pt.enabled = true;
 		points[p_id] = pt;
+		edges[p_id] = memnew((OAHashMap<int, bool>));
 	} else {
 		points[p_id].pos = p_pos;
 		points[p_id].weight_scale = p_weight_scale;
@@ -98,29 +99,9 @@ void AStarThin::remove_point(int p_id) {
 
 	ERR_FAIL_COND(!points.has(p_id));
 
-	Point &p = points[p_id];
-
-	for (Set<int>::Element *E = p.neighbours.front(); E; E = E->next()) {
-
-		Point &n = points[E->get()];
-		// Segment s(p_id, E->get());
-		// segments.erase(s);
-
-		n.neighbours.erase(p_id);
-		n.unlinked_neighbours.erase(p_id);
-	}
-
-	for (Set<int>::Element *E = p.unlinked_neighbours.front(); E; E = E->next()) {
-
-		Point &n = points[E->get()];
-		// Segment s(p_id, E->get());
-		// segments.erase(s);
-
-		n.neighbours.erase(p_id);
-		n.unlinked_neighbours.erase(p_id);
-	}
-
+	edges.remove(p_id);
 	points.remove(p_id);
+
 }
 
 void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
@@ -129,18 +110,18 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 	ERR_FAIL_COND(!points.has(p_with_id));
 	ERR_FAIL_COND(p_id == p_with_id);
 
-	Point &a = points[p_id];
-	Point &b = points[p_with_id];
-	a.neighbours.insert(p_with_id);
+	OAHashMap<int, bool> *e = edges[p_id];
+	(*e)[p_with_id] = true;
 
-	if (bidirectional)
-		b.neighbours.insert(p_id);
-	else
-		b.unlinked_neighbours.insert(p_id);
+	if (bidirectional) {
+		OAHashMap<int, bool> *e = edges[p_with_id];
+		(*e)[p_id] = true;
+	}
 
 	// Segment s(p_id, p_with_id);
 	// segments.insert(s);
 }
+
 void AStarThin::disconnect_points(int p_id, int p_with_id) {
 
 	// Segment s(p_id, p_with_id);
@@ -148,12 +129,11 @@ void AStarThin::disconnect_points(int p_id, int p_with_id) {
 
 	// segments.erase(s);
 
-	Point &a = points[p_id];
-	Point &b = points[p_with_id];
-	a.neighbours.erase(p_with_id);
-	a.unlinked_neighbours.erase(p_with_id);
-	b.neighbours.erase(p_id);
-	b.unlinked_neighbours.erase(p_id);
+	OAHashMap<int, bool> *from_edges = edges[p_id];
+	OAHashMap<int, bool> *to_edges = edges[p_with_id];
+	from_edges->remove(p_with_id);
+	to_edges->remove(p_id);
+
 }
 
 bool AStarThin::has_point(int p_id) const {

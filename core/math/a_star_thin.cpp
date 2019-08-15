@@ -310,12 +310,10 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 			bool new_point = false;
 
 			if (e->open_pass != pass) { // The point wasn't inside the open list.
-
 				e->open_pass = pass;
 				open_list.push_back(e);
 				new_point = true;
 			} else if (tentative_g_score >= e->g_score) { // The new path is worse than the previous.
-
 				continue;
 			}
 
@@ -352,8 +350,8 @@ float AStarThin::_compute_cost(int p_from_id, int p_to_id) {
 
 PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 
-	ERR_FAIL_COND_V_MSG(!points.has(p_from_id), PoolVector<Vector3>(), vformat("points does not contain: %d?", p_from_id));
-	ERR_FAIL_COND_V_MSG(!points.has(p_to_id), PoolVector<Vector3>(), vformat("points does not contain: %d?", p_to_id));
+	ERR_FAIL_COND_V(!points.has(p_from_id), PoolVector<Vector3>());
+	ERR_FAIL_COND_V(!points.has(p_to_id), PoolVector<Vector3>());
 
 	Point *a = points[p_from_id];
 	Point *b = points[p_to_id];
@@ -370,7 +368,6 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	bool found_route = _solve(begin_point, end_point);
 	if (!found_route) return PoolVector<Vector3>();
 
-	// Midpoints
 	Point *p = end_point;
 	int pc = 1; // Begin point
 	while (p != begin_point) {
@@ -417,7 +414,6 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 	bool found_route = _solve(begin_point, end_point);
 	if (!found_route) return PoolVector<int>();
 
-	// Midpoints
 	Point *p = end_point;
 	int pc = 1; // Begin point
 	while (p != begin_point) {

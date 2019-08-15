@@ -44,6 +44,8 @@ class AStarThin : public Reference {
 
 	GDCLASS(AStarThin, Reference);
 
+	uint64_t pass;
+
 	struct Point {
 
 		int id;
@@ -55,13 +57,14 @@ class AStarThin : public Reference {
 		int prev_point; // TODO: move me out of the hot path later?
 		real_t g_score;
 		real_t f_score;
-
+		uint64_t open_pass;
+		uint64_t closed_pass;
 	};
 
 	OAHashMap2<int, Point> points;
 	OAHashMap2<int, OAHashMap2<int, bool>*> edges;
 
-	OAHashMap2<int, bool> open_set;
+	// OAHashMap<int, bool> open_set;
 	OAHashMap2<int, int> path;
 
 	struct SortPoints {

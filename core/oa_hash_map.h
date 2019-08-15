@@ -223,8 +223,7 @@ public:
 
 		if (!exists) {
 			insert(p_key, TValue());
-			// ERR_PRINTS("instance: " + itos((uint64_t)this) + ", num elements: " + itos(num_elements) + " capacity: " + itos(capacity));
-			pos = _lookup_pos(p_key, pos);
+			_lookup_pos(p_key, pos);
 		}
 
 		return values[pos];
@@ -547,8 +546,7 @@ public:
 
 		if (!exists) {
 			insert(p_key, TValue());
-			// ERR_PRINTS("instance: " + itos((uint64_t)this) + ", num elements: " + itos(num_elements) + " capacity: " + itos(capacity));
-			pos = _lookup_pos(p_key, pos);
+			_lookup_pos(p_key, pos);
 		}
 
 		return entries[pos].value;

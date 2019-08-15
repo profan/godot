@@ -487,13 +487,11 @@ void AStarThin::_bind_methods() {
 }
 
 AStarThin::AStarThin() {
-
 	last_max_id = -1;
 	pass = 1;
 }
 
 AStarThin::~AStarThin() {
-
 	last_max_id = -1;
 	pass = 1;
 	clear();

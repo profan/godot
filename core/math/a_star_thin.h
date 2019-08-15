@@ -44,8 +44,6 @@ class AStarThin : public Reference {
 
 	GDCLASS(AStarThin, Reference);
 
-	uint64_t pass;
-
 	struct Point {
 
 		int id;
@@ -56,24 +54,24 @@ class AStarThin : public Reference {
 		OAHashMap<int, Point*> neighbours;
 		OAHashMap<int, Point*> unlinked_neighbours;
 
-		// Used for pathfinding
+		// Used for pathfinding.
 		Point *prev_point;
 		real_t g_score;
 		real_t f_score;
 		uint64_t open_pass;
 		uint64_t closed_pass;
+
 	};
 
-	OAHashMap<int, Point *> points;
-
 	struct SortPoints {
-		_FORCE_INLINE_ bool operator()(const Point *A, const Point *B) const { // Returns true when the Point A is worse than Point B
-			if (A->f_score > B->f_score)
+		_FORCE_INLINE_ bool operator()(const Point *A, const Point *B) const { // Returns true when the Point A is worse than Point B.
+			if (A->f_score > B->f_score) {
 				return true;
-			else if (A->f_score < B->f_score)
+			} else if (A->f_score < B->f_score) {
 				return false;
-			else
-				return A->g_score < B->g_score; // If the f_costs are the same then prioritize the points that are further away from the start
+			} else {
+				return A->g_score < B->g_score; // If the f_costs are the same then prioritize the points that are further away from the start.
+			}
 		}
 	};
 
@@ -101,6 +99,10 @@ class AStarThin : public Reference {
 		}
 	};
 
+	int last_max_id;
+	uint64_t pass;
+	
+	OAHashMap<int, Point *> points;
 	Set<Segment> segments;
 
 	bool _solve(Point *begin_point, Point *end_point);

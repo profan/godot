@@ -40,7 +40,7 @@ int AStarThin::get_available_point_id() const {
 		return 1;
 	}
 
-	return 0;
+	return last_max_id + 1;
 }
 
 void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale) {
@@ -58,11 +58,19 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		pt->closed_pass = 0;
 		pt->enabled = true;
 		points[p_id] = pt;
-		CRASH_COND(!points.has(p_id));
 	} else {
 		points[p_id]->pos = p_pos;
 		points[p_id]->weight_scale = p_weight_scale;
 	}
+
+	if (p_id > last_max_id || points.has(last_max_id + 1)) {
+		int cur_new_id = last_max_id;
+		while (points.has(cur_new_id + 1)) {
+			cur_new_id++;
+		}
+		last_max_id = cur_new_id;
+	}
+
 }
 
 Vector3 AStarThin::get_point_position(int p_id) const {
@@ -132,10 +140,11 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 	Point *b = points[p_with_id];
 	a->neighbours[b->id] = b;
 
-	if (bidirectional)
+	if (bidirectional) {
 		b->neighbours[a->id] = a;
-	else
+	} else {
 		b->unlinked_neighbours[a->id] = a;
+	}
 
 	Segment s(p_id, p_with_id);
 	if (s.from == p_id) {
@@ -231,8 +240,8 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 
 Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const {
 
-	real_t closest_dist = 1e20;
 	bool found = false;
+	real_t closest_dist = 1e20;
 	Vector3 closest_point;
 
 	for (const Set<Segment>::Element *E = segments.front(); E; E = E->next()) {
@@ -263,8 +272,7 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 
 	pass++;
 
-	if (!end_point->enabled)
-		return false;
+	if (!end_point->enabled) return false;
 
 	bool found_route = false;
 
@@ -273,13 +281,9 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 
 	begin_point->g_score = 0;
 	begin_point->f_score = _estimate_cost(begin_point->id, end_point->id);
-
 	open_list.push_back(begin_point);
 
-	while (true) {
-
-		if (open_list.size() == 0) // No path found
-			break;
+	while (!open_list.empty()) {
 
 		Point *p = open_list[0]; // The currently processed point
 
@@ -296,19 +300,20 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 
 			Point *e = *(it.value); // The neighbour point
 
-			if (!e->enabled || e->closed_pass == pass)
+			if (!e->enabled || e->closed_pass == pass) {
 				continue;
+			}
 
 			real_t tentative_g_score = p->g_score + _compute_cost(p->id, e->id) * e->weight_scale;
 
 			bool new_point = false;
 
-			if (e->open_pass != pass) { // The point wasn't inside the open list
+			if (e->open_pass != pass) { // The point wasn't inside the open list.
 
 				e->open_pass = pass;
 				open_list.push_back(e);
 				new_point = true;
-			} else if (tentative_g_score >= e->g_score) { // The new path is worse than the previous
+			} else if (tentative_g_score >= e->g_score) { // The new path is worse than the previous.
 
 				continue;
 			}
@@ -317,10 +322,11 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 			e->g_score = tentative_g_score;
 			e->f_score = e->g_score + _estimate_cost(e->id, end_point->id);
 
-			if (new_point) // The position of the new points is already known
+			if (new_point) { // The position of the new points is already known.
 				sorter.push_heap(0, open_list.size() - 1, 0, e, open_list.ptrw());
-			else
+			} else {
 				sorter.push_heap(0, open_list.find(e), 0, e, open_list.ptrw());
+			}
 		}
 	}
 
@@ -361,9 +367,7 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	Point *end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
-
-	if (!found_route)
-		return PoolVector<Vector3>();
+	if (!found_route) return PoolVector<Vector3>();
 
 	// Midpoints
 	Point *p = end_point;
@@ -410,9 +414,7 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 	Point *end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
-
-	if (!found_route)
-		return PoolVector<int>();
+	if (!found_route) return PoolVector<int>();
 
 	// Midpoints
 	Point *p = end_point;
@@ -489,11 +491,13 @@ void AStarThin::_bind_methods() {
 
 AStarThin::AStarThin() {
 
+	last_max_id = -1;
 	pass = 1;
 }
 
 AStarThin::~AStarThin() {
 
+	last_max_id = -1;
 	pass = 1;
 	clear();
 }

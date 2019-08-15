@@ -61,7 +61,7 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		points[p_id] = pt;
 		CRASH_COND(!points.has(p_id));
 		CRASH_COND(points[p_id].id != p_id);
-		edges[p_id] = memnew((OAHashMap2<int, bool>));
+		edges[p_id] = memnew((OAHashMap<int, bool>));
 		CRASH_COND(!edges[p_id]);
 	} else {
 		points[p_id].pos = p_pos;
@@ -103,7 +103,7 @@ void AStarThin::remove_point(int p_id) {
 	ERR_FAIL_COND(!points.has(p_id));
 	ERR_FAIL_COND(!edges.has(p_id));
 
-	OAHashMap2<int, bool> *e = edges[p_id];
+	OAHashMap<int, bool> *e = edges[p_id];
 	memfree(e);
 
 	points.remove(p_id);
@@ -137,8 +137,8 @@ void AStarThin::disconnect_points(int p_id, int p_with_id) {
 
 	// segments.erase(s);
 
-	OAHashMap2<int, bool> *from_edges = edges[p_id];
-	OAHashMap2<int, bool> *to_edges = edges[p_with_id];
+	OAHashMap<int, bool> *from_edges = edges[p_id];
+	OAHashMap<int, bool> *to_edges = edges[p_with_id];
 	from_edges->remove(p_with_id);
 	to_edges->remove(p_id);
 
@@ -153,7 +153,7 @@ Array AStarThin::get_points() {
 
 	Array point_list;
 	
-	for (OAHashMap2<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		point_list.push_back(*it.key);
 	}
 
@@ -165,7 +165,7 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 	ERR_FAIL_COND_V(!points.has(p_id), PoolVector<int>());
 	PoolVector<int> point_list;
 
-	for (OAHashMap2<int, bool>::Iterator it = edges[p_id]->iter(); it.valid; it = edges[p_id]->next_iter(it)) {
+	for (OAHashMap<int, bool>::Iterator it = edges[p_id]->iter(); it.valid; it = edges[p_id]->next_iter(it)) {
 		point_list.push_back(*(it.key));
 	}
 
@@ -188,7 +188,7 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 	int closest_id = -1;
 	real_t closest_dist = 1e20;
 
-	for (OAHashMap2<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 
 		const Point *p = it.value;
 		if (!p->enabled) continue; // disabled points should not be considered.
@@ -271,7 +271,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 		open_list.remove(open_list.size() - 1);
 		p.closed_pass = pass;
 
-		for (OAHashMap2<int, bool>::Iterator it = edges[p.id]->iter(); it.valid; it = edges[p.id]->next_iter(it)) {
+		for (OAHashMap<int, bool>::Iterator it = edges[p.id]->iter(); it.valid; it = edges[p.id]->next_iter(it)) {
 			
 			Point &e = points[*(it.key)]; // The neighbour point
 
@@ -283,7 +283,8 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 			bool new_point = false;
 
-			if (e.open_pass != pass) { // The point wasn't inside the open list
+			// if (e.open_pass != pass) { // The point wasn't inside the open list
+			if (e.open_pass != pass) {
 				e.open_pass = pass;
 				open_list.push_back(e.id);
 				new_point = true;

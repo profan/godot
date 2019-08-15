@@ -100,7 +100,7 @@ void AStarThin::remove_point(int p_id) {
 
 	Point *p = points[p_id];
 
-	for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
 
 		Segment s(p_id, (*it.key));
 		segments.erase(s);
@@ -109,7 +109,7 @@ void AStarThin::remove_point(int p_id) {
 		(*it.value)->unlinked_neighbours.remove(p->id);
 	}
 
-	for (auto it = p->unlinked_neighbours.iter(); it.valid; it = p->unlinked_neighbours.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = p->unlinked_neighbours.iter(); it.valid; it = p->unlinked_neighbours.next_iter(it)) {
 
 		Segment s(p_id, (*it.key));
 		segments.erase(s);
@@ -172,7 +172,7 @@ Array AStarThin::get_points() {
 
 	Array point_list;
 
-	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		point_list.push_back(*(it.key));
 	}
 
@@ -187,7 +187,7 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 	Point *p = points[p_id];
 
-	for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
 		point_list.push_back((*it.key));
 	}
 
@@ -202,7 +202,7 @@ bool AStarThin::are_points_connected(int p_id, int p_with_id) const {
 
 void AStarThin::clear() {
 
-	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 		memdelete(*(it.value));
 	}
 	segments.clear();
@@ -214,7 +214,7 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 	int closest_id = -1;
 	real_t closest_dist = 1e20;
 
-	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (OAHashMap<int, Point*>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
 
 		if (!(*it.value)->enabled) continue; // Disabled points should not be considered.
 
@@ -292,7 +292,7 @@ bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 		open_list.remove(open_list.size() - 1);
 		p->closed_pass = pass; // Mark the point as closed
 
-		for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
+		for (OAHashMap<int, Point*>::Iterator it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
 
 			Point *e = *(it.value); // The neighbour point
 

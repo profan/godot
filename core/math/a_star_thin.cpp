@@ -63,6 +63,7 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		points[p_id]->weight_scale = p_weight_scale;
 	}
 
+	// calculate our new next available point id if bigger than before or next id already contained in set of points.
 	if (p_id > last_max_id || points.has(last_max_id + 1)) {
 		int cur_new_id = last_max_id;
 		while (points.has(cur_new_id + 1)) {

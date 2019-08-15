@@ -58,14 +58,14 @@ class AStarThin : public Reference {
 
 	};
 
-	OAHashMap<int, Point> points;
-	OAHashMap<int, OAHashMap<int, bool>*> edges;
+	OAHashMap2<int, Point> points;
+	OAHashMap2<int, OAHashMap2<int, bool>*> edges;
 
-	OAHashMap<int, bool> open_set;
-	OAHashMap<int, int> path;
+	OAHashMap2<int, bool> open_set;
+	OAHashMap2<int, int> path;
 
 	struct SortPoints {
-		OAHashMap<int, Point> *points;
+		OAHashMap2<int, Point> *points;
 		_FORCE_INLINE_ bool operator()(const int a_id, const int b_id) const { // Returns true when the Point A is worse than Point B
 			const Point &A = (*points)[a_id];
 			const Point &B = (*points)[b_id];

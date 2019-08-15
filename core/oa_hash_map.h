@@ -368,4 +368,324 @@ public:
 	}
 };
 
+/*
+	OAHashMap v2.0
+ */
+
+template <class TKey, class TValue,
+		class Hasher = HashMapHasherDefault,
+		class Comparator = HashMapComparatorDefault<TKey> >
+class OAHashMap2 {
+
+	struct Entry {
+		TKey key;
+		TValue value;
+		uint32_t hash;
+	};
+
+private:
+	Entry *entries;
+
+	uint32_t capacity;
+
+	uint32_t num_elements;
+
+	static const uint32_t EMPTY_HASH = 0;
+	static const uint32_t DELETED_HASH_BIT = 1 << 31;
+
+	_FORCE_INLINE_ uint32_t _hash(const TKey &p_key) const {
+		uint32_t hash = Hasher::hash(p_key);
+
+		if (hash == EMPTY_HASH) {
+			hash = EMPTY_HASH + 1;
+		} else if (hash & DELETED_HASH_BIT) {
+			hash &= ~DELETED_HASH_BIT;
+		}
+
+		return hash;
+	}
+
+	_FORCE_INLINE_ uint32_t _get_probe_length(uint32_t p_pos, uint32_t p_hash) const {
+		p_hash = p_hash & ~DELETED_HASH_BIT; // we don't care if it was deleted or not
+
+		uint32_t original_pos = p_hash % capacity;
+
+		return p_pos - original_pos;
+	}
+
+	_FORCE_INLINE_ void _construct(uint32_t p_pos, uint32_t p_hash, const TKey &p_key, const TValue &p_value) {
+		memnew_placement(&entries[p_pos].key, TKey(p_key));
+		memnew_placement(&entries[p_pos].value, TValue(p_value));
+		entries[p_pos].hash = p_hash;
+
+		num_elements++;
+	}
+
+	bool _lookup_pos(const TKey &p_key, uint32_t &r_pos) const {
+		uint32_t hash = _hash(p_key);
+		uint32_t pos = hash % capacity;
+		uint32_t distance = 0;
+
+		while (42) {
+			if (entries[pos].hash == EMPTY_HASH) {
+				return false;
+			}
+
+			if (distance > _get_probe_length(pos, entries[pos].hash)) {
+				return false;
+			}
+
+			if (entries[pos].hash == hash && Comparator::compare(entries[pos].key, p_key)) {
+				r_pos = pos;
+				return true;
+			}
+
+			pos = (pos + 1) % capacity;
+			distance++;
+		}
+	}
+
+	void _insert_with_hash(uint32_t p_hash, const TKey &p_key, const TValue &p_value) {
+
+		uint32_t hash = p_hash;
+		uint32_t distance = 0;
+		uint32_t pos = hash % capacity;
+
+		TKey key = p_key;
+		TValue value = p_value;
+
+		while (42) {
+			if (entries[pos].hash == EMPTY_HASH) {
+				_construct(pos, hash, key, value);
+
+				return;
+			}
+
+			// not an empty slot, let's check the probing length of the existing one
+			uint32_t existing_probe_len = _get_probe_length(pos, entries[pos].hash);
+			if (existing_probe_len < distance) {
+
+				if (entries[pos].hash & DELETED_HASH_BIT) {
+					// we found a place where we can fit in!
+					_construct(pos, hash, key, value);
+
+					return;
+				}
+
+				SWAP(hash, entries[pos].hash);
+				SWAP(key, entries[pos].key);
+				SWAP(value, entries[pos].value);
+				distance = existing_probe_len;
+			}
+
+			pos = (pos + 1) % capacity;
+			distance++;
+		}
+	}
+	
+	void _resize_and_rehash() {
+
+		Entry *old_entries = entries;
+		uint32_t old_capacity = capacity;
+
+		capacity = old_capacity * 2;
+		num_elements = 0;
+
+		entries = memnew_arr(Entry, capacity);
+
+		for (uint32_t i = 0; i < capacity; i++) {
+			entries[i].hash = 0;
+		}
+
+		for (uint32_t i = 0; i < old_capacity; i++) {
+			if (old_entries[i].hash == EMPTY_HASH) {
+				continue;
+			}
+			if (old_entries[i].hash & DELETED_HASH_BIT) {
+				continue;
+			}
+
+			_insert_with_hash(old_entries[i].hash, old_entries[i].key, old_entries[i].value);
+		}
+
+		memdelete_arr(old_entries);
+	}
+
+public:
+	_FORCE_INLINE_ uint32_t get_capacity() const { return capacity; }
+	_FORCE_INLINE_ uint32_t get_num_elements() const { return num_elements; }
+	
+	bool empty() const {
+		return num_elements == 0;
+	}
+
+	void clear() {
+
+		Iterator it = iter();
+
+		while (it.valid) {
+			remove(*it.key);
+			it = next_iter(it);
+		}
+
+	}
+
+	const TValue& operator[](const TKey &p_key) const {
+
+		uint32_t pos = 0;
+		bool exists = _lookup_pos(p_key, pos);
+		CRASH_COND(!exists);
+
+		return entries[pos].value;
+
+	}
+
+	TValue& operator[](const TKey &p_key) {
+
+		uint32_t pos = 0;
+		bool exists = _lookup_pos(p_key, pos);
+
+		if (!exists) {
+			insert(p_key, TValue());
+			// ERR_PRINTS("instance: " + itos((uint64_t)this) + ", num elements: " + itos(num_elements) + " capacity: " + itos(capacity));
+			pos = _lookup_pos(p_key, pos);
+		}
+
+		return entries[pos].value;
+
+	}
+
+	void insert(const TKey &p_key, const TValue &p_value) {
+
+		if ((float)num_elements / (float)capacity > 0.9) {
+			_resize_and_rehash();
+		}
+
+		uint32_t hash = _hash(p_key);
+
+		_insert_with_hash(hash, p_key, p_value);
+	}
+
+	void set(const TKey &p_key, const TValue &p_data) {
+		uint32_t pos = 0;
+		bool exists = _lookup_pos(p_key, pos);
+
+		if (exists) {
+			entries[pos].value.~TValue();
+			memnew_placement(&entries[pos].value, TValue(p_data));
+		} else {
+			insert(p_key, p_data);
+		}
+	}
+
+	/**
+	 * returns true if the value was found, false otherwise.
+	 *
+	 * if r_data is not NULL then the value will be written to the object
+	 * it points to.
+	 */
+	bool lookup(const TKey &p_key, TValue &r_data) {
+		uint32_t pos = 0;
+		bool exists = _lookup_pos(p_key, pos);
+
+		if (exists) {
+			r_data.~TValue();
+			memnew_placement(&r_data, TValue(entries[pos].value));
+			return true;
+		}
+
+		return false;
+	}
+
+	_FORCE_INLINE_ bool has(const TKey &p_key) const {
+		uint32_t _pos = 0;
+		return _lookup_pos(p_key, _pos);
+	}
+
+	void remove(const TKey &p_key) {
+		uint32_t pos = 0;
+		bool exists = _lookup_pos(p_key, pos);
+
+		if (!exists) {
+			return;
+		}
+
+		entries[pos].hash |= DELETED_HASH_BIT;
+		entries[pos].value.~TValue();
+		entries[pos].key.~TKey();
+		num_elements--;
+	}
+
+	struct Iterator {
+		bool valid;
+
+		const TKey *key;
+		const TValue *value;
+
+	private:
+		uint32_t pos;
+		friend class OAHashMap2;
+	};
+
+	Iterator iter() const {
+		Iterator it;
+
+		it.valid = true;
+		it.pos = 0;
+
+		return next_iter(it);
+	}
+
+	Iterator next_iter(const Iterator &p_iter) const {
+
+		if (!p_iter.valid) {
+			return p_iter;
+		}
+
+		Iterator it;
+		it.valid = false;
+		it.pos = p_iter.pos;
+		it.key = NULL;
+		it.value = NULL;
+
+		for (uint32_t i = it.pos; i < capacity; i++) {
+			it.pos = i + 1;
+
+			if (entries[i].hash == EMPTY_HASH) {
+				continue;
+			}
+			if (entries[i].hash & DELETED_HASH_BIT) {
+				continue;
+			}
+
+			it.valid = true;
+			it.key = &entries[i].key;
+			it.value = &entries[i].value;
+			return it;
+		}
+
+		return it;
+	}
+
+	OAHashMap2(const OAHashMap2&) = delete; // delete the copy constructor so we don't get unexpected copies and dangling pointers
+	OAHashMap2& operator=(const OAHashMap2&) = delete; // ditto for assignment operator
+
+	OAHashMap2(uint32_t p_initial_capacity = 64) {
+
+		capacity = p_initial_capacity;
+		num_elements = 0;
+
+		entries = memnew_arr(Entry, p_initial_capacity);
+
+		for (uint32_t i = 0; i < p_initial_capacity; i++) {
+			entries[i].hash = 0;
+		}
+	}
+
+	~OAHashMap2() {
+
+		memdelete_arr(entries);
+	}
+};
+
 #endif

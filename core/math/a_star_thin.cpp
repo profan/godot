@@ -57,7 +57,7 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		pt.prev_point = -1;
 		pt.enabled = true;
 		points[p_id] = pt;
-		edges.set(p_id, memnew((OAHashMap<int, bool>)));
+		edges.set(p_id, memnew((OAHashMap2<int, bool>)));
 		CRASH_COND(!edges[p_id]);
 	} else {
 		points[p_id].pos = p_pos;
@@ -99,7 +99,7 @@ void AStarThin::remove_point(int p_id) {
 	ERR_FAIL_COND(!points.has(p_id));
 	ERR_FAIL_COND(!edges.has(p_id));
 
-	OAHashMap<int, bool> *e = edges[p_id];
+	OAHashMap2<int, bool> *e = edges[p_id];
 	memfree(e);
 
 	points.remove(p_id);
@@ -133,8 +133,8 @@ void AStarThin::disconnect_points(int p_id, int p_with_id) {
 
 	// segments.erase(s);
 
-	OAHashMap<int, bool> *from_edges = edges[p_id];
-	OAHashMap<int, bool> *to_edges = edges[p_with_id];
+	OAHashMap2<int, bool> *from_edges = edges[p_id];
+	OAHashMap2<int, bool> *to_edges = edges[p_with_id];
 	from_edges->remove(p_with_id);
 	to_edges->remove(p_id);
 
@@ -149,7 +149,7 @@ Array AStarThin::get_points() {
 
 	Array point_list;
 
-	OAHashMap<int, Point>::Iterator it = points.iter();
+	OAHashMap2<int, Point>::Iterator it = points.iter();
 	while (it.valid) {
 		point_list.push_back(*it.key);
 		it = points.next_iter(it);
@@ -163,7 +163,7 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 	ERR_FAIL_COND_V(!points.has(p_id), PoolVector<int>());
 	PoolVector<int> point_list;
 
-	OAHashMap<int, bool>::Iterator it = edges[p_id]->iter();
+	OAHashMap2<int, bool>::Iterator it = edges[p_id]->iter();
 	while (it.valid) {
 		point_list.push_back(*it.key);
 		it = edges[p_id]->next_iter(it);
@@ -187,7 +187,7 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 
 	int closest_id = -1;
 	real_t closest_dist = 1e20;
-	OAHashMap<int, Point>::Iterator it = points.iter();
+	OAHashMap2<int, Point>::Iterator it = points.iter();
 
 	while (it.valid) {
 
@@ -272,7 +272,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 		open_list.remove(open_list.size() - 1);
 		open_set.remove(p.id);
 
-		OAHashMap<int, bool>::Iterator it = edges[p.id]->iter();
+		OAHashMap2<int, bool>::Iterator it = edges[p.id]->iter();
 
 		while (it.valid) {
 			

@@ -55,11 +55,10 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 		pt.pos = p_pos;
 		pt.weight_scale = p_weight_scale;
 		pt.prev_point = -1;
-		pt.open_pass = 0;
-		pt.closed_pass = 0;
 		pt.enabled = true;
 		points[p_id] = pt;
-		edges[p_id] = memnew((OAHashMap<int, bool>));
+		edges.set(p_id, memnew((OAHashMap<int, bool>)));
+		CRASH_COND(!edges[p_id]);
 	} else {
 		points[p_id].pos = p_pos;
 		points[p_id].weight_scale = p_weight_scale;
@@ -110,17 +109,14 @@ void AStarThin::remove_point(int p_id) {
 
 void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 
-	ERR_FAIL_COND(!points.has(p_id));
-	ERR_FAIL_COND(!points.has(p_with_id));
+	ERR_FAIL_COND(!points.has(p_id) || !edges.has(p_id));
+	ERR_FAIL_COND(!points.has(p_with_id) || !edges.has(p_with_id));
 	ERR_FAIL_COND(p_id == p_with_id);
 
-	OAHashMap<int, bool> *e = edges[p_id];
-	(*e)[p_with_id] = true;
+	(*edges[p_id])[p_with_id] = true;
 
 	if (bidirectional) {
-		ERR_FAIL_COND(!edges.has(p_with_id));
-		OAHashMap<int, bool> *e = edges[p_with_id];
-		(*e)[p_id] = true;
+		(*edges[p_with_id])[p_id] = true;
 	}
 
 	// Segment s(p_id, p_with_id);
@@ -248,8 +244,6 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 
 bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
-	pass++;
-
 	if (!end_point.enabled) {
 		return false;
 	}
@@ -276,7 +270,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 		sorter.pop_heap(0, open_list.size(), open_list.ptrw()); // Remove the current point from the open list
 		open_list.remove(open_list.size() - 1);
-		p.closed_pass = pass; // Mark the point as closed
+		open_set.remove(p.id);
 
 		OAHashMap<int, bool>::Iterator it = edges[p.id]->iter();
 
@@ -284,7 +278,7 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 			
 			Point &e = points[*it.value]; // The neighbour point
 
-			if (!e.enabled || e.closed_pass == pass) {
+			if (!e.enabled) {
 				continue;
 			}
 
@@ -292,8 +286,8 @@ bool AStarThin::_solve(Point &begin_point, Point &end_point) {
 
 			bool new_point = false;
 
-			if (e.open_pass != pass) { // The point wasn't inside the open list
-				e.open_pass = pass;
+			if (!open_set.has(e.id)) { // The point wasn't inside the open list
+				open_set.set(e.id, true);
 				open_list.push_back(e.id);
 				new_point = true;
 			} else if (tentative_g_score >= e.g_score) { // The new path is worse than the previous
@@ -475,12 +469,10 @@ void AStarThin::_bind_methods() {
 
 AStarThin::AStarThin() {
 
-	pass = 1;
 }
 
 AStarThin::~AStarThin() {
 
-	pass = 1;
 	clear();
 }
 

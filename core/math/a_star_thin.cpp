@@ -98,9 +98,13 @@ void AStarThin::set_point_weight_scale(int p_id, real_t p_weight_scale) {
 void AStarThin::remove_point(int p_id) {
 
 	ERR_FAIL_COND(!points.has(p_id));
+	ERR_FAIL_COND(!edges.has(p_id));
 
-	edges.remove(p_id);
+	OAHashMap<int, bool> *e = edges[p_id];
+	memfree(e);
+
 	points.remove(p_id);
+	edges.remove(p_id);
 
 }
 
@@ -114,6 +118,7 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 	(*e)[p_with_id] = true;
 
 	if (bidirectional) {
+		ERR_FAIL_COND(!edges.has(p_with_id));
 		OAHashMap<int, bool> *e = edges[p_with_id];
 		(*e)[p_id] = true;
 	}
@@ -123,6 +128,9 @@ void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 }
 
 void AStarThin::disconnect_points(int p_id, int p_with_id) {
+	
+	ERR_FAIL_COND(!edges.has(p_id));
+	ERR_FAIL_COND(!edges.has(p_with_id));
 
 	// Segment s(p_id, p_with_id);
 	// ERR_FAIL_COND(!segments.has(s));
@@ -169,10 +177,8 @@ PoolVector<int> AStarThin::get_point_connections(int p_id) {
 }
 
 bool AStarThin::are_points_connected(int p_id, int p_with_id) const {
-
-	// Segment s(p_id, p_with_id);
-	// return segments.has(s);
-	return true;
+	ERR_FAIL_COND_V(!edges.has(p_id), false);
+	return edges[p_id]->has(p_with_id);
 }
 
 void AStarThin::clear() {

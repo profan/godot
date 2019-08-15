@@ -53,35 +53,57 @@ class AStarThin : public Reference {
 		real_t weight_scale;
 		bool enabled;
 
+		OAHashMap<int, Point*> neighbours;
+		OAHashMap<int, Point*> unlinked_neighbours;
+
 		// Used for pathfinding
-		int prev_point; // TODO: move me out of the hot path later?
+		Point *prev_point;
 		real_t g_score;
 		real_t f_score;
 		uint64_t open_pass;
 		uint64_t closed_pass;
-
 	};
 
-	OAHashMap<int, Point> points;
-	OAHashMap<int, OAHashMap<int, bool>*> edges;
-	// OAHashMap<int, int> path;
+	OAHashMap<int, Point *> points;
 
 	struct SortPoints {
-		OAHashMap<int, Point> *points;
-		_FORCE_INLINE_ bool operator()(const int a_id, const int b_id) const { // Returns true when the Point A is worse than Point B
-			const Point &A = (*points)[a_id];
-			const Point &B = (*points)[b_id];
-			if (A.f_score > B.f_score) {
+		_FORCE_INLINE_ bool operator()(const Point *A, const Point *B) const { // Returns true when the Point A is worse than Point B
+			if (A->f_score > B->f_score)
 				return true;
-			} else if (A.f_score < B.f_score) {
+			else if (A->f_score < B->f_score)
 				return false;
-			} else {
-				return A.g_score < B.g_score; // If the f_costs are the same then prioritize the points that are further away from the start
-			}
+			else
+				return A->g_score < B->g_score; // If the f_costs are the same then prioritize the points that are further away from the start
 		}
 	};
 
-	bool _solve(Point &begin_point, Point &end_point);
+	struct Segment {
+		union {
+			struct {
+				int32_t from;
+				int32_t to;
+			};
+			uint64_t key;
+		};
+
+		Point *from_point;
+		Point *to_point;
+
+		bool operator<(const Segment &p_s) const { return key < p_s.key; }
+		Segment() { key = 0; }
+		Segment(int p_from, int p_to) {
+			if (p_from > p_to) {
+				SWAP(p_from, p_to);
+			}
+
+			from = p_from;
+			to = p_to;
+		}
+	};
+
+	Set<Segment> segments;
+
+	bool _solve(Point *begin_point, Point *end_point);
 
 protected:
 	static void _bind_methods();

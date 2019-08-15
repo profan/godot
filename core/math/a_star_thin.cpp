@@ -40,7 +40,6 @@ int AStarThin::get_available_point_id() const {
 		return 1;
 	}
 
-	// return points.back()->key() + 1;
 	return 0;
 }
 
@@ -50,22 +49,19 @@ void AStarThin::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale)
 	ERR_FAIL_COND(p_weight_scale < 1);
 
 	if (!points.has(p_id)) {
-		Point pt;
-		pt.id = p_id;
-		pt.pos = p_pos;
-		pt.weight_scale = p_weight_scale;
-		pt.prev_point = -1;
-		pt.closed_pass = 0;
-		pt.open_pass = 0;
-		pt.enabled = true;
+		Point *pt = memnew(Point);
+		pt->id = p_id;
+		pt->pos = p_pos;
+		pt->weight_scale = p_weight_scale;
+		pt->prev_point = NULL;
+		pt->open_pass = 0;
+		pt->closed_pass = 0;
+		pt->enabled = true;
 		points[p_id] = pt;
 		CRASH_COND(!points.has(p_id));
-		CRASH_COND(points[p_id].id != p_id);
-		edges[p_id] = memnew((OAHashMap<int, bool>));
-		CRASH_COND(!edges[p_id]);
 	} else {
-		points[p_id].pos = p_pos;
-		points[p_id].weight_scale = p_weight_scale;
+		points[p_id]->pos = p_pos;
+		points[p_id]->weight_scale = p_weight_scale;
 	}
 }
 
@@ -73,21 +69,21 @@ Vector3 AStarThin::get_point_position(int p_id) const {
 
 	ERR_FAIL_COND_V(!points.has(p_id), Vector3());
 
-	return points[p_id].pos;
+	return points[p_id]->pos;
 }
 
 void AStarThin::set_point_position(int p_id, const Vector3 &p_pos) {
 
 	ERR_FAIL_COND(!points.has(p_id));
 
-	points[p_id].pos = p_pos;
+	points[p_id]->pos = p_pos;
 }
 
 real_t AStarThin::get_point_weight_scale(int p_id) const {
 
 	ERR_FAIL_COND_V(!points.has(p_id), 0);
 
-	return points[p_id].weight_scale;
+	return points[p_id]->weight_scale;
 }
 
 void AStarThin::set_point_weight_scale(int p_id, real_t p_weight_scale) {
@@ -95,53 +91,76 @@ void AStarThin::set_point_weight_scale(int p_id, real_t p_weight_scale) {
 	ERR_FAIL_COND(!points.has(p_id));
 	ERR_FAIL_COND(p_weight_scale < 1);
 
-	points[p_id].weight_scale = p_weight_scale;
+	points[p_id]->weight_scale = p_weight_scale;
 }
 
 void AStarThin::remove_point(int p_id) {
 
 	ERR_FAIL_COND(!points.has(p_id));
-	ERR_FAIL_COND(!edges.has(p_id));
 
-	OAHashMap<int, bool> *e = edges[p_id];
-	memfree(e);
+	Point *p = points[p_id];
 
+	for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
+
+		Segment s(p_id, (*it.key));
+		segments.erase(s);
+
+		(*it.value)->neighbours.remove(p->id);
+		(*it.value)->unlinked_neighbours.remove(p->id);
+	}
+
+	for (auto it = p->unlinked_neighbours.iter(); it.valid; it = p->unlinked_neighbours.next_iter(it)) {
+
+		Segment s(p_id, (*it.key));
+		segments.erase(s);
+
+		(*it.value)->neighbours.remove(p->id);
+		(*it.value)->unlinked_neighbours.remove(p->id);
+	}
+
+	memdelete(p);
 	points.remove(p_id);
-	edges.remove(p_id);
-
 }
 
 void AStarThin::connect_points(int p_id, int p_with_id, bool bidirectional) {
 
-	ERR_FAIL_COND(!points.has(p_id) || !edges.has(p_id));
-	ERR_FAIL_COND(!points.has(p_with_id) || !edges.has(p_with_id));
+	ERR_FAIL_COND(!points.has(p_id));
+	ERR_FAIL_COND(!points.has(p_with_id));
 	ERR_FAIL_COND(p_id == p_with_id);
 
-	(*edges[p_id])[p_with_id] = true;
+	Point *a = points[p_id];
+	Point *b = points[p_with_id];
+	a->neighbours[b->id] = b;
 
-	if (bidirectional) {
-		(*edges[p_with_id])[p_id] = true;
+	if (bidirectional)
+		b->neighbours[a->id] = a;
+	else
+		b->unlinked_neighbours[a->id] = a;
+
+	Segment s(p_id, p_with_id);
+	if (s.from == p_id) {
+		s.from_point = a;
+		s.to_point = b;
+	} else {
+		s.from_point = b;
+		s.to_point = a;
 	}
 
-	// Segment s(p_id, p_with_id);
-	// segments.insert(s);
+	segments.insert(s);
 }
-
 void AStarThin::disconnect_points(int p_id, int p_with_id) {
-	
-	ERR_FAIL_COND(!edges.has(p_id));
-	ERR_FAIL_COND(!edges.has(p_with_id));
 
-	// Segment s(p_id, p_with_id);
-	// ERR_FAIL_COND(!segments.has(s));
+	Segment s(p_id, p_with_id);
+	ERR_FAIL_COND(!segments.has(s));
 
-	// segments.erase(s);
+	segments.erase(s);
 
-	OAHashMap<int, bool> *from_edges = edges[p_id];
-	OAHashMap<int, bool> *to_edges = edges[p_with_id];
-	from_edges->remove(p_with_id);
-	to_edges->remove(p_id);
-
+	Point *a = points[p_id];
+	Point *b = points[p_with_id];
+	a->neighbours.remove(b->id);
+	a->unlinked_neighbours.remove(b->id);
+	b->neighbours.remove(a->id);
+	b->unlinked_neighbours.remove(a->id);
 }
 
 bool AStarThin::has_point(int p_id) const {
@@ -152,9 +171,9 @@ bool AStarThin::has_point(int p_id) const {
 Array AStarThin::get_points() {
 
 	Array point_list;
-	
-	for (OAHashMap<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
-		point_list.push_back(*it.key);
+
+	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
+		point_list.push_back(*(it.key));
 	}
 
 	return point_list;
@@ -163,23 +182,30 @@ Array AStarThin::get_points() {
 PoolVector<int> AStarThin::get_point_connections(int p_id) {
 
 	ERR_FAIL_COND_V(!points.has(p_id), PoolVector<int>());
+
 	PoolVector<int> point_list;
 
-	for (OAHashMap<int, bool>::Iterator it = edges[p_id]->iter(); it.valid; it = edges[p_id]->next_iter(it)) {
-		point_list.push_back(*(it.key));
+	Point *p = points[p_id];
+
+	for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
+		point_list.push_back((*it.key));
 	}
 
 	return point_list;
 }
 
 bool AStarThin::are_points_connected(int p_id, int p_with_id) const {
-	ERR_FAIL_COND_V(!edges.has(p_id), false);
-	return edges[p_id]->has(p_with_id);
+
+	Segment s(p_id, p_with_id);
+	return segments.has(s);
 }
 
 void AStarThin::clear() {
-	// segments.clear();
-	edges.clear();
+
+	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
+		memdelete(*(it.value));
+	}
+	segments.clear();
 	points.clear();
 }
 
@@ -188,15 +214,14 @@ int AStarThin::get_closest_point(const Vector3 &p_point) const {
 	int closest_id = -1;
 	real_t closest_dist = 1e20;
 
-	for (OAHashMap<int, Point>::Iterator it = points.iter(); it.valid; it = points.next_iter(it)) {
+	for (auto it = points.iter(); it.valid; it = points.next_iter(it)) {
 
-		const Point *p = it.value;
-		if (!p->enabled) continue; // disabled points should not be considered.
+		if (!(*it.value)->enabled) continue; // Disabled points should not be considered.
 
-		real_t d = p_point.distance_squared_to(p->pos);
+		real_t d = p_point.distance_squared_to((*it.value)->pos);
 		if (closest_id < 0 || d < closest_dist) {
 			closest_dist = d;
-			closest_id = p->id;
+			closest_id = *(it.key);
 		}
 
 	}
@@ -210,19 +235,15 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 	bool found = false;
 	Vector3 closest_point;
 
-	/*
 	for (const Set<Segment>::Element *E = segments.front(); E; E = E->next()) {
 
-		const Point &from_point = points[E->get().from];
-		const Point &to_point = points[E->get().to];
-
-		if (!(from_point.enabled && to_point.enabled)) {
+		if (!(E->get().from_point->enabled && E->get().to_point->enabled)) {
 			continue;
 		}
 
 		Vector3 segment[2] = {
-			from_point.pos,
-			to_point.pos,
+			E->get().from_point->pos,
+			E->get().to_point->pos,
 		};
 
 		Vector3 p = Geometry::get_closest_point_to_segment(p_point, segment);
@@ -234,76 +255,73 @@ Vector3 AStarThin::get_closest_position_in_segment(const Vector3 &p_point) const
 			found = true;
 		}
 	}
-	*/
 
 	return closest_point;
 }
 
-bool AStarThin::_solve(Point &begin_point, Point &end_point) {
+bool AStarThin::_solve(Point *begin_point, Point *end_point) {
 
 	pass++;
 
-	if (!end_point.enabled) {
+	if (!end_point->enabled)
 		return false;
-	}
 
 	bool found_route = false;
 
-	Vector<int> open_list;
-	SortArray<int, SortPoints> sorter;
-	sorter.compare.points = &points;
+	Vector<Point *> open_list;
+	SortArray<Point *, SortPoints> sorter;
 
-	begin_point.g_score = 0;
-	begin_point.f_score = _estimate_cost(begin_point.id, end_point.id);
+	begin_point->g_score = 0;
+	begin_point->f_score = _estimate_cost(begin_point->id, end_point->id);
 
-	open_list.push_back(begin_point.id);
+	open_list.push_back(begin_point);
 
-	while (!open_list.empty()) {
+	while (true) {
 
-		Point &p = points[open_list[0]]; // The currently processed point
+		if (open_list.size() == 0) // No path found
+			break;
 
-		if (p.id == end_point.id) {
+		Point *p = open_list[0]; // The currently processed point
+
+		if (p == end_point) {
 			found_route = true;
 			break;
 		}
 
 		sorter.pop_heap(0, open_list.size(), open_list.ptrw()); // Remove the current point from the open list
 		open_list.remove(open_list.size() - 1);
-		p.closed_pass = pass;
+		p->closed_pass = pass; // Mark the point as closed
 
-		for (OAHashMap<int, bool>::Iterator it = edges[p.id]->iter(); it.valid; it = edges[p.id]->next_iter(it)) {
-			
-			Point &e = points[*(it.key)]; // The neighbour point
+		for (auto it = p->neighbours.iter(); it.valid; it = p->neighbours.next_iter(it)) {
 
-			if (!e.enabled || e.closed_pass == pass) {
+			Point *e = *(it.value); // The neighbour point
+
+			if (!e->enabled || e->closed_pass == pass)
 				continue;
-			}
 
-			real_t tentative_g_score = p.g_score + _compute_cost(p.id, e.id) * e.weight_scale;
+			real_t tentative_g_score = p->g_score + _compute_cost(p->id, e->id) * e->weight_scale;
 
 			bool new_point = false;
 
-			// if (e.open_pass != pass) { // The point wasn't inside the open list
-			if (e.open_pass != pass) {
-				e.open_pass = pass;
-				open_list.push_back(e.id);
+			if (e->open_pass != pass) { // The point wasn't inside the open list
+
+				e->open_pass = pass;
+				open_list.push_back(e);
 				new_point = true;
-			} else if (tentative_g_score >= e.g_score) { // The new path is worse than the previous
+			} else if (tentative_g_score >= e->g_score) { // The new path is worse than the previous
+
 				continue;
 			}
 
-			e.prev_point = p.id;
-			e.g_score = tentative_g_score;
-			e.f_score = e.g_score + _estimate_cost(e.id, end_point.id);
+			e->prev_point = p;
+			e->g_score = tentative_g_score;
+			e->f_score = e->g_score + _estimate_cost(e->id, end_point->id);
 
-			if (new_point) { // The position of the new points is already known
-				sorter.push_heap(0, open_list.size() - 1, 0, e.id, open_list.ptrw());
-			} else {
-				sorter.push_heap(0, open_list.find(e.id), 0, e.id, open_list.ptrw());
-			}
-			
+			if (new_point) // The position of the new points is already known
+				sorter.push_heap(0, open_list.size() - 1, 0, e, open_list.ptrw());
+			else
+				sorter.push_heap(0, open_list.find(e), 0, e, open_list.ptrw());
 		}
-
 	}
 
 	return found_route;
@@ -314,7 +332,7 @@ float AStarThin::_estimate_cost(int p_from_id, int p_to_id) {
 	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_estimate_cost))
 		return get_script_instance()->call(SceneStringNames::get_singleton()->_estimate_cost, p_from_id, p_to_id);
 
-	return points[p_from_id].pos.distance_to(points[p_to_id].pos);
+	return points[p_from_id]->pos.distance_to(points[p_to_id]->pos);
 }
 
 float AStarThin::_compute_cost(int p_from_id, int p_to_id) {
@@ -322,34 +340,37 @@ float AStarThin::_compute_cost(int p_from_id, int p_to_id) {
 	if (get_script_instance() && get_script_instance()->has_method(SceneStringNames::get_singleton()->_compute_cost))
 		return get_script_instance()->call(SceneStringNames::get_singleton()->_compute_cost, p_from_id, p_to_id);
 
-	return points[p_from_id].pos.distance_to(points[p_to_id].pos);
+	return points[p_from_id]->pos.distance_to(points[p_to_id]->pos);
 }
 
 PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 
-	ERR_FAIL_COND_V(!points.has(p_from_id), PoolVector<Vector3>());
-	ERR_FAIL_COND_V(!points.has(p_to_id), PoolVector<Vector3>());
+	ERR_FAIL_COND_V_MSG(!points.has(p_from_id), PoolVector<Vector3>(), vformat("points does not contain: %d?", p_from_id));
+	ERR_FAIL_COND_V_MSG(!points.has(p_to_id), PoolVector<Vector3>(), vformat("points does not contain: %d?", p_to_id));
 
-	Point &a = points[p_from_id];
-	Point &b = points[p_to_id];
+	Point *a = points[p_from_id];
+	Point *b = points[p_to_id];
 
-	if (a.id == b.id) {
+	if (a == b) {
 		PoolVector<Vector3> ret;
-		ret.push_back(a.pos);
+		ret.push_back(a->pos);
 		return ret;
 	}
 
-	Point &begin_point = a;
-	Point &end_point = b;
+	Point *begin_point = a;
+	Point *end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
-	if (!found_route) return PoolVector<Vector3>();
 
-	Point &p = end_point;
+	if (!found_route)
+		return PoolVector<Vector3>();
+
+	// Midpoints
+	Point *p = end_point;
 	int pc = 1; // Begin point
-	while (p.id != begin_point.id) {
+	while (p != begin_point) {
 		pc++;
-		p = points[p.prev_point];
+		p = p->prev_point;
 	}
 
 	PoolVector<Vector3> path;
@@ -358,14 +379,14 @@ PoolVector<Vector3> AStarThin::get_point_path(int p_from_id, int p_to_id) {
 	{
 		PoolVector<Vector3>::Write w = path.write();
 
-		Point &p2 = end_point;
+		Point *p2 = end_point;
 		int idx = pc - 1;
-		while (p2.id != begin_point.id) {
-			w[idx--] = p2.pos;
-			p2 = points[p2.prev_point];
+		while (p2 != begin_point) {
+			w[idx--] = p2->pos;
+			p2 = p2->prev_point;
 		}
 
-		w[0] = p2.pos; // Assign first
+		w[0] = p2->pos; // Assign first
 	}
 
 	return path;
@@ -376,26 +397,29 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 	ERR_FAIL_COND_V(!points.has(p_from_id), PoolVector<int>());
 	ERR_FAIL_COND_V(!points.has(p_to_id), PoolVector<int>());
 
-	Point &a = points[p_from_id];
-	Point &b = points[p_to_id];
+	Point *a = points[p_from_id];
+	Point *b = points[p_to_id];
 
-	if (a.id == b.id) {
+	if (a == b) {
 		PoolVector<int> ret;
-		ret.push_back(a.id);
+		ret.push_back(a->id);
 		return ret;
 	}
 
-	Point &begin_point = a;
-	Point &end_point = b;
+	Point *begin_point = a;
+	Point *end_point = b;
 
 	bool found_route = _solve(begin_point, end_point);
-	if (!found_route) return PoolVector<int>();
 
-	Point &p = end_point;
+	if (!found_route)
+		return PoolVector<int>();
+
+	// Midpoints
+	Point *p = end_point;
 	int pc = 1; // Begin point
-	while (p.id != begin_point.id) {
+	while (p != begin_point) {
 		pc++;
-		p = points[p.prev_point];
+		p = p->prev_point;
 	}
 
 	PoolVector<int> path;
@@ -406,12 +430,12 @@ PoolVector<int> AStarThin::get_id_path(int p_from_id, int p_to_id) {
 
 		p = end_point;
 		int idx = pc - 1;
-		while (p.id != begin_point.id) {
-			w[idx--] = p.id;
-			p = points[p.prev_point];
+		while (p != begin_point) {
+			w[idx--] = p->id;
+			p = p->prev_point;
 		}
 
-		w[0] = p.id; // Assign first
+		w[0] = p->id; // Assign first
 	}
 
 	return path;
@@ -421,14 +445,14 @@ void AStarThin::set_point_disabled(int p_id, bool p_disabled) {
 
 	ERR_FAIL_COND(!points.has(p_id));
 
-	points[p_id].enabled = !p_disabled;
+	points[p_id]->enabled = !p_disabled;
 }
 
 bool AStarThin::is_point_disabled(int p_id) const {
 
 	ERR_FAIL_COND_V(!points.has(p_id), false);
 
-	return !points[p_id].enabled;
+	return !points[p_id]->enabled;
 }
 
 void AStarThin::_bind_methods() {
@@ -465,10 +489,12 @@ void AStarThin::_bind_methods() {
 
 AStarThin::AStarThin() {
 
+	pass = 1;
 }
 
 AStarThin::~AStarThin() {
 
+	pass = 1;
 	clear();
 }
 

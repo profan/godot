@@ -269,15 +269,14 @@ Error CowData<T>::resize(int p_size) {
 
 	ERR_FAIL_COND_V(p_size < 0, ERR_INVALID_PARAMETER);
 
-	if (p_size == capacity()) {
-		_size = p_size;
+	if (p_size == size()) {
 		return OK;
 	}
 
 	/*
 
 	FIXME: testing if this is gonna break godot or not :D
-	
+
 	if (p_size == 0) {
 		_unref(_ptr);
 		_ptr = NULL;

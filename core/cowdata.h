@@ -144,7 +144,10 @@ public:
 		}
 	}
 
-	_FORCE_INLINE_ void clear() { resize(0); }
+	_FORCE_INLINE_ void clear() {
+		resize(0);
+	}
+	
 	_FORCE_INLINE_ bool empty() const { return _ptr == 0; }
 
 	_FORCE_INLINE_ void set(int p_index, const T &p_elem) {
@@ -271,13 +274,18 @@ Error CowData<T>::resize(int p_size) {
 		return OK;
 	}
 
+	/*
+
+	FIXME: testing if this is gonna break godot or not :D
+	
 	if (p_size == 0) {
-		// wants to clean up
 		_unref(_ptr);
 		_ptr = NULL;
 		_size = 0;
 		return OK;
 	}
+
+	*/
 
 	// possibly changing size, copy on write
 	_copy_on_write();

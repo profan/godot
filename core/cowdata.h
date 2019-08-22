@@ -148,7 +148,7 @@ public:
 		resize(0);
 	}
 	
-	_FORCE_INLINE_ bool empty() const { return _ptr == 0; }
+	_FORCE_INLINE_ bool empty() const { return _size == 0; }
 
 	_FORCE_INLINE_ void set(int p_index, const T &p_elem) {
 
@@ -214,8 +214,8 @@ void CowData<T>::_unref(void *p_data) {
 
 	if (atomic_decrement(refc) > 0)
 		return; // still in use
-	// clean up
 
+	// clean up
 	if (!__has_trivial_destructor(T)) {
 		uint32_t count = _get_size();
 		T *data = _get_data();
@@ -242,19 +242,18 @@ void CowData<T>::_copy_on_write() {
 		/* in use by more than me */
 		uint32_t current_size = *_get_capacity();
 
-		uint32_t *mem_new = (uint32_t *)Memory::alloc_static(_get_alloc_size(current_size), true);
-
-		*(mem_new - 2) = 1; //refcount
-		*(mem_new - 1) = current_size; //size
+		uint32_t *mem_new = (uint32_t *)Memory::alloc_static(current_size * sizeof(T), true);
+		*(mem_new - 1) = current_size; // capacity
+		*(mem_new - 2) = 1; // refcount
 
 		T *_data = (T *)(mem_new);
 
 		// initialize new elements
 		if (__has_trivial_copy(T)) {
-			memcpy(mem_new, _ptr, current_size * sizeof(T));
+			memcpy(mem_new, _ptr, _size * sizeof(T));
 
 		} else {
-			for (uint32_t i = 0; i < current_size; i++) {
+			for (uint32_t i = 0; i < _size; i++) {
 				memnew_placement(&_data[i], T(_get_data()[i]));
 			}
 		}
@@ -273,38 +272,25 @@ Error CowData<T>::resize(int p_size) {
 		return OK;
 	}
 
-	/*
-
-	FIXME: testing if this is gonna break godot or not :D
-
-	if (p_size == 0) {
-		_unref(_ptr);
-		_ptr = NULL;
-		_size = 0;
-		return OK;
-	}
-
-	*/
-
 	// possibly changing size, copy on write
 	_copy_on_write();
 
-	size_t alloc_size;
-	ERR_FAIL_COND_V(!_get_alloc_size_checked(p_size, &alloc_size), ERR_OUT_OF_MEMORY);
+	size_t alloc_size = next_power_of_2(p_size);
+	//ERR_FAIL_COND_V(!_get_alloc_size_checked(p_size, &alloc_size), ERR_OUT_OF_MEMORY);
 
-	if (p_size > capacity()) {
+	if (alloc_size > capacity()) {
 
 		if (capacity() == 0) {
 			// alloc from scratch
-			uint32_t *ptr = (uint32_t *)Memory::alloc_static(alloc_size, true);
+			uint32_t *ptr = (uint32_t *)Memory::alloc_static(alloc_size * sizeof(T), true);
 			ERR_FAIL_COND_V(!ptr, ERR_OUT_OF_MEMORY);
-			*(ptr - 1) = 0; //size, currently none
-			*(ptr - 2) = 1; //refcount
+			*(ptr - 1) = 0; // capacity, currently none
+			*(ptr - 2) = 1; // refcount
 
 			_ptr = (T *)ptr;
 
 		} else {
-			void *_ptrnew = (T *)Memory::realloc_static(_ptr, alloc_size, true);
+			void *_ptrnew = (T *)Memory::realloc_static(_ptr, alloc_size * sizeof(T), true);
 			ERR_FAIL_COND_V(!_ptrnew, ERR_OUT_OF_MEMORY);
 			_ptr = (T *)(_ptrnew);
 		}
@@ -319,7 +305,7 @@ Error CowData<T>::resize(int p_size) {
 			}
 		}
 
-		*_get_capacity() = p_size;
+		*_get_capacity() = (uint32_t)(alloc_size);
 		_size = p_size;
 
 	} else if (p_size > size()) {
@@ -387,10 +373,9 @@ void CowData<T>::_ref(const CowData &p_from) {
 		return; //nothing to do
 
 	if (atomic_conditional_increment(p_from._get_refcount()) > 0) { // could reference
+		_size = p_from._size; // FIXME: is this correct?
 		_ptr = p_from._ptr;
 	}
-
-	_size = p_from._size;
 
 }
 

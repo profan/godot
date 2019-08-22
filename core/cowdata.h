@@ -275,10 +275,10 @@ Error CowData<T>::resize(int p_size) {
 	// possibly changing size, copy on write
 	_copy_on_write();
 
-	size_t alloc_size = next_power_of_2(p_size);
+	size_t alloc_size = p_size * 1.618;
 	//ERR_FAIL_COND_V(!_get_alloc_size_checked(p_size, &alloc_size), ERR_OUT_OF_MEMORY);
 
-	if (alloc_size > capacity()) {
+	if (p_size > capacity()) {
 
 		if (capacity() == 0) {
 			// alloc from scratch

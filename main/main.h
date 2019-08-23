@@ -35,6 +35,13 @@
 #include "core/os/thread.h"
 #include "core/typedefs.h"
 
+#include <vector>
+#include <queue>
+
+extern std::unordered_set<size_t, size_t> cowdata_sizes;
+extern std::mutex cowdata_sizes_lock;
+void add_cowdata_size(int p_size);
+
 class Main {
 
 	static void print_help(const char *p_binary);

@@ -228,6 +228,10 @@ void CowData<T>::_unref(void *p_data) {
 
 	// free mem
 	Memory::free_static((uint8_t *)p_data, true);
+
+	// log final size for profiling purposes
+	add_cowdata_size(_size);
+
 }
 
 template <class T>
@@ -275,7 +279,7 @@ Error CowData<T>::resize(int p_size) {
 	// possibly changing size, copy on write
 	_copy_on_write();
 
-	size_t alloc_size = p_size * 1.618;
+	uint32_t alloc_size = p_size * 1.618;
 	//ERR_FAIL_COND_V(!_get_alloc_size_checked(p_size, &alloc_size), ERR_OUT_OF_MEMORY);
 
 	if (p_size > capacity()) {

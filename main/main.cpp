@@ -77,6 +77,13 @@
 #include "editor/project_manager.h"
 #endif
 
+#include <vector>
+#include <thread>
+
+/* Benchmarking */
+std::unordered_map<size_t> cowdata_sizes;
+std::mutex cowdata_sizes_lock;
+
 /* Static members */
 
 // Singletons
@@ -327,7 +334,23 @@ void Main::print_help(const char *p_binary) {
  *   in help, it's a bit messy and should be globalized with the setup() parsing somehow.
  */
 
+void add_cowdata_size(int p_size) {
+
+	cowdata_sizes_lock.lock();
+
+	auto v = cowdata_sizes.find(p_size);
+	if (v != cowdata_sizes.end()) {
+		v->second++;
+	} else {
+		v[p_size] = 1;
+	}
+
+	cowdata_sizes_lock.unlock();
+
+}
+
 Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_phase) {
+
 	RID_OwnerBase::init_rid();
 
 	OS::get_singleton()->initialize_core();
@@ -2103,4 +2126,10 @@ void Main::cleanup() {
 
 	OS::get_singleton()->clear_last_error();
 	OS::get_singleton()->finalize_core();
+
+	printf("CowData size benchmark:\n");
+	for (auto [key, value] : cowdat_sizes) {
+		printf("size: %d, occurrences: %d\n", key, value);
+	}
+
 }

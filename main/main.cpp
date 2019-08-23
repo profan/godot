@@ -77,8 +77,6 @@
 #include "editor/project_manager.h"
 #endif
 
-#include "bench.h"
-
 /* Static members */
 
 // Singletons

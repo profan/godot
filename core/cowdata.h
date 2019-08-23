@@ -33,7 +33,7 @@
 
 #include <string.h>
 
-#include "bench.h"
+#include "main/bench.h"
 #include "core/os/memory.h"
 #include "core/safe_refcount.h"
 

@@ -1,6 +1,7 @@
 #ifndef GODOT_BENCH_H
 #define GODOT_BENCH_H
 
+#include <mutex>
 #include <thread>
 #include <vector>
 #include <unordered_map>

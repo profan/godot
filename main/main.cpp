@@ -2107,7 +2107,7 @@ void Main::cleanup() {
 
 	printf("CowData size benchmark:\n");
 	for (auto [key, value] : cowdata_sizes) {
-		printf("size: %d, occurrences: %d\n", key, value);
+		printf("size: %zu, occurrences: %zu\n", key, value);
 	}
 
 }

@@ -12,7 +12,7 @@ void add_cowdata_size(int p_size) {
 	if (v != cowdata_sizes.end()) {
 		v->second++;
 	} else {
-		v[p_size] = 1;
+		cowdata_sizes[p_size] = 1;
 	}
 
 	cowdata_sizes_lock.unlock();

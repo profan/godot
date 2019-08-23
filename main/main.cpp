@@ -77,12 +77,7 @@
 #include "editor/project_manager.h"
 #endif
 
-#include <vector>
-#include <thread>
-
-/* Benchmarking */
-std::unordered_map<size_t> cowdata_sizes;
-std::mutex cowdata_sizes_lock;
+#include "bench.h"
 
 /* Static members */
 
@@ -2128,7 +2123,7 @@ void Main::cleanup() {
 	OS::get_singleton()->finalize_core();
 
 	printf("CowData size benchmark:\n");
-	for (auto [key, value] : cowdat_sizes) {
+	for (auto [key, value] : cowdata_sizes) {
 		printf("size: %d, occurrences: %d\n", key, value);
 	}
 

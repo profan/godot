@@ -1,7 +1,7 @@
 #include "bench.h"
 
 /* Benchmarking */
-std::unordered_map<size_t> cowdata_sizes;
+std::unordered_map<size_t, size_t> cowdata_sizes;
 std::mutex cowdata_sizes_lock;
 
 void add_cowdata_size(int p_size) {

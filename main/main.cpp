@@ -327,21 +327,6 @@ void Main::print_help(const char *p_binary) {
  *   in help, it's a bit messy and should be globalized with the setup() parsing somehow.
  */
 
-void add_cowdata_size(int p_size) {
-
-	cowdata_sizes_lock.lock();
-
-	auto v = cowdata_sizes.find(p_size);
-	if (v != cowdata_sizes.end()) {
-		v->second++;
-	} else {
-		v[p_size] = 1;
-	}
-
-	cowdata_sizes_lock.unlock();
-
-}
-
 Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_phase) {
 
 	RID_OwnerBase::init_rid();

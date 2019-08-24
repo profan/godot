@@ -692,6 +692,7 @@ void CowData<T, N>::_ref(const CowData<T, N> &p_from) {
 	if (other_ref == NULL) {
 		memcpy(_small_data, p_from._small_data, sizeof(_small_data));
 		_size = p_from._size;
+		_ptr = _small_data;
 		return;
 	}
 
@@ -724,13 +725,13 @@ void CowData<T, 0>::_ref(const CowData &p_from) {
 template <class T>
 CowData<T, 0>::CowData() {
 	_size = 0;
-	_ptr = NULL;
+	_ptr = _small_data;
 }
 
 template <class T, int N>
 CowData<T, N>::CowData() {
 	_size = 0;
-	_ptr = _small_data;
+	_ptr = NULL;
 }
 
 template <class T, int N>

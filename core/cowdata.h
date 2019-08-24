@@ -740,4 +740,12 @@ CowData<T, N>::~CowData() {
 	_size = 0;
 }
 
+template <class T>
+CowData<T, 0>::~CowData() {
+
+	_unref(_ptr);
+	_size = 0;
+}
+
+
 #endif /* COW_H_ */

@@ -722,16 +722,16 @@ void CowData<T, 0>::_ref(const CowData &p_from) {
 
 }
 
-template <class T>
-CowData<T, 0>::CowData() {
-	_size = 0;
-	_ptr = _small_data;
-}
-
 template <class T, int N>
 CowData<T, N>::CowData() {
 	_size = 0;
 	_ptr = NULL;
+}
+
+template <class T>
+CowData<T, 0>::CowData() {
+	_size = 0;
+	_ptr = _small_data;
 }
 
 template <class T, int N>

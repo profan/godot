@@ -44,7 +44,7 @@ class CharString;
 template <class T, class V>
 class VMap;
 
-template <class T>
+template <class T, int N=2>
 class CowData {
 	template <class TV>
 	friend class Vector;
@@ -55,13 +55,14 @@ class CowData {
 
 private:
 	mutable T *_ptr;
+	T _small_data[N];
 	uint32_t _size;
 
 	// internal helpers
 
 	_FORCE_INLINE_ uint32_t *_get_refcount() const {
 
-		if (!_ptr)
+		if (_ptr == _small_data)
 			return NULL;
 
 		return reinterpret_cast<uint32_t *>(_ptr) - 2;
@@ -69,24 +70,19 @@ private:
 
 	_FORCE_INLINE_ uint32_t *_get_capacity() const {
 
-		if (!_ptr)
+		if (_ptr == _small_data)
 			return NULL;
 
 		return reinterpret_cast<uint32_t *>(_ptr) - 1;
 	}
 
 	_FORCE_INLINE_ uint32_t _get_size() const {
-
-		if (!_ptr)
-			return 0;
-
+		CRASH_COND(_ptr == NULL);
 		return _size;
 	}
 
 	_FORCE_INLINE_ T *_get_data() const {
-
-		if (!_ptr)
-			return NULL;
+		CRASH_COND(_ptr == NULL);
 		return reinterpret_cast<T *>(_ptr);
 	}
 
@@ -141,7 +137,7 @@ public:
 		if (capacity) {
 			return *capacity;
 		} else {
-			return 0;
+			return N;
 		}
 	}
 
@@ -205,16 +201,17 @@ public:
 	_FORCE_INLINE_ CowData(CowData<T> &p_from) { _ref(p_from); };
 };
 
-template <class T>
-void CowData<T>::_unref(void *p_data) {
+template <class T, int N>
+void CowData<T, N>::_unref(void *p_data) {
 
 	if (!p_data)
 		return;
 
 	uint32_t *refc = _get_refcount();
 
-	if (atomic_decrement(refc) > 0)
-		return; // still in use
+	if (refc != NULL && atomic_decrement(refc) > 0) {
+		return; // still in use or small vector
+	}
 
 	// clean up
 	if (!__has_trivial_destructor(T)) {
@@ -227,21 +224,24 @@ void CowData<T>::_unref(void *p_data) {
 		}
 	}
 
-	// free mem
-	Memory::free_static((uint8_t *)p_data, true);
+	// free mem, if necessary
+	if (refc != NULL) {
+		Memory::free_static((uint8_t *)p_data, true);
+	}
 
 	// log final size for profiling purposes
 	add_cowdata_size(_size);
 
 }
 
-template <class T>
-void CowData<T>::_copy_on_write() {
+template <class T, int N>
+void CowData<T, N>::_copy_on_write() {
 
 	if (!_ptr)
 		return;
 
 	uint32_t *refc = _get_refcount();
+	if (refc == NULL) return; // we're small enough that it's still in the small vector segment
 
 	if (unlikely(*refc > 1)) {
 		/* in use by more than me */
@@ -256,7 +256,6 @@ void CowData<T>::_copy_on_write() {
 		// initialize new elements
 		if (__has_trivial_copy(T)) {
 			memcpy(mem_new, _ptr, _size * sizeof(T));
-
 		} else {
 			for (uint32_t i = 0; i < _size; i++) {
 				memnew_placement(&_data[i], T(_get_data()[i]));
@@ -268,8 +267,8 @@ void CowData<T>::_copy_on_write() {
 	}
 }
 
-template <class T>
-Error CowData<T>::resize(int p_size) {
+template <class T, int N>
+Error CowData<T, N>::resize(int p_size) {
 
 	ERR_FAIL_COND_V(p_size < 0, ERR_INVALID_PARAMETER);
 
@@ -285,23 +284,35 @@ Error CowData<T>::resize(int p_size) {
 
 	if (p_size > capacity()) {
 
-		if (capacity() == 0) {
-			// alloc from scratch
-			uint32_t *ptr = (uint32_t *)Memory::alloc_static(alloc_size * sizeof(T), true);
-			ERR_FAIL_COND_V(!ptr, ERR_OUT_OF_MEMORY);
-			*(ptr - 1) = 0; // capacity, currently none
-			*(ptr - 2) = 1; // refcount
+		if (_ptr == _small_data) {
 
-			_ptr = (T *)ptr;
+			// heap alloc from scratch
+			uint32_t *new_ptr = (uint32_t *)Memory::alloc_static(alloc_size * sizeof(T), true);
+			ERR_FAIL_COND_V(!new_ptr, ERR_OUT_OF_MEMORY);
+			*(new_ptr - 1) = 0; // capacity, currently none
+			*(new_ptr - 2) = 1; // refcount
+			T *data = (T*)new_ptr;
+
+			// initialize new elements
+			if (__has_trivial_copy(T)) {
+				memcpy(new_ptr, _ptr, _size * sizeof(T));
+			} else {
+				for (uint32_t i = 0; i < _size; i++) {
+					memnew_placement(&data[i], T(_get_data()[i]));
+				}
+			}
+
+			_ptr = data;
 
 		} else {
+
 			void *_ptrnew = (T *)Memory::realloc_static(_ptr, alloc_size * sizeof(T), true);
 			ERR_FAIL_COND_V(!_ptrnew, ERR_OUT_OF_MEMORY);
 			_ptr = (T *)(_ptrnew);
+
 		}
 
 		// construct the newly created elements
-
 		if (!__has_trivial_constructor(T)) {
 			T *elems = _get_data();
 
@@ -342,8 +353,8 @@ Error CowData<T>::resize(int p_size) {
 	return OK;
 }
 
-template <class T>
-int CowData<T>::find(const T &p_val, int p_from) const {
+template <class T, int N>
+int CowData<T, N>::find(const T &p_val, int p_from) const {
 	int ret = -1;
 
 	if (p_from < 0 || size() == 0) {
@@ -360,13 +371,13 @@ int CowData<T>::find(const T &p_val, int p_from) const {
 	return ret;
 }
 
-template <class T>
-void CowData<T>::_ref(const CowData *p_from) {
+template <class T, int N>
+void CowData<T, N>::_ref(const CowData *p_from) {
 	_ref(*p_from);
 }
 
-template <class T>
-void CowData<T>::_ref(const CowData &p_from) {
+template <class T, int N>
+void CowData<T, N>::_ref(const CowData &p_from) {
 
 	if (_ptr == p_from._ptr)
 		return; // self assign, do nothing.
@@ -384,14 +395,14 @@ void CowData<T>::_ref(const CowData &p_from) {
 
 }
 
-template <class T>
-CowData<T>::CowData() {
+template <class T, int N>
+CowData<T, N>::CowData() {
 	_size = 0;
-	_ptr = NULL;
+	_ptr = _small_data;
 }
 
-template <class T>
-CowData<T>::~CowData() {
+template <class T, int N>
+CowData<T, N>::~CowData() {
 
 	_unref(_ptr);
 	_size = 0;

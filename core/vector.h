@@ -42,7 +42,7 @@
 #include "core/os/memory.h"
 #include "core/sort_array.h"
 
-template <class T, N>
+template <class T, int N>
 class VectorWriteProxy {
 public:
 	_FORCE_INLINE_ T &operator[](int p_index) {

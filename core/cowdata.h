@@ -196,9 +196,19 @@ public:
 
 	int find(const T &p_val, int p_from = 0) const;
 
-	_FORCE_INLINE_ CowData();
-	_FORCE_INLINE_ ~CowData();
+	_FORCE_INLINE_
+	CowData() {
+		_size = 0;
+		_ptr = _small_data;
+	}
+
+	_FORCE_INLINE_ ~CowData() {
+		_unref(_ptr);
+		_size = 0;
+	}
+
 	_FORCE_INLINE_ CowData(CowData<T, N> &p_from) { _ref(p_from); };
+	
 };
 
 template <class T>
@@ -358,9 +368,18 @@ public:
 
 	int find(const T &p_val, int p_from = 0) const;
 
-	_FORCE_INLINE_ CowData();
-	_FORCE_INLINE_ ~CowData();
+	_FORCE_INLINE_ CowData() {
+		_size = 0;
+		_ptr = NULL;
+	}
+
+	_FORCE_INLINE_ ~CowData() {
+		_unref(_ptr);
+		_size = 0;
+	}
+
 	_FORCE_INLINE_ CowData(CowData &p_from) { _ref(p_from); };
+
 };
 
 template <class T, int N>
@@ -721,32 +740,5 @@ void CowData<T, 0>::_ref(const CowData &p_from) {
 	}
 
 }
-
-template <class T, int N>
-CowData<T, N>::CowData() {
-	_size = 0;
-	_ptr = NULL;
-}
-
-template <class T>
-CowData<T, 0>::CowData() {
-	_size = 0;
-	_ptr = _small_data;
-}
-
-template <class T, int N>
-CowData<T, N>::~CowData() {
-
-	_unref(_ptr);
-	_size = 0;
-}
-
-template <class T>
-CowData<T, 0>::~CowData() {
-
-	_unref(_ptr);
-	_size = 0;
-}
-
 
 #endif /* COW_H_ */

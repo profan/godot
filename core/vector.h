@@ -54,7 +54,7 @@ public:
 
 template <class T, int N = 2>
 class Vector {
-	friend class VectorWriteProxy<T>;
+	friend class VectorWriteProxy<T, N>;
 
 public:
 	VectorWriteProxy<T, N> write;

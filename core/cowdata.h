@@ -371,6 +371,37 @@ void CowData<T, N>::_unref(void *p_data) {
 
 	uint32_t *refc = _get_refcount();
 
+	if (atomic_decrement(refc) > 0) {
+		return; // still in use
+	}
+
+	// clean up
+	if (!__has_trivial_destructor(T)) {
+		uint32_t count = _get_size();
+		T *data = _get_data();
+
+		for (uint32_t i = 0; i < count; ++i) {
+			// call destructors
+			data[i].~T();
+		}
+	}
+
+	// free mem
+	Memory::free_static((uint8_t *)p_data, true);
+
+	// log final size for profiling purposes
+	add_cowdata_size(_size);
+
+}
+
+template <class T>
+void CowData<T, 0>::_unref(void *p_data) {
+
+	if (!p_data)
+		return;
+
+	uint32_t *refc = _get_refcount();
+
 	if (refc != NULL && atomic_decrement(refc) > 0) {
 		return; // still in use or small vector
 	}
@@ -396,13 +427,40 @@ void CowData<T, N>::_unref(void *p_data) {
 
 }
 
-template <class T>
-void CowData<T, 0>::_unref(void *p_data) {
-	_unref<T, 1>(p_data);
-}
-
 template <class T, int N>
 void CowData<T, N>::_copy_on_write() {
+
+	if (!_ptr)
+		return;
+
+	uint32_t *refc = _get_refcount();
+
+	if (unlikely(*refc > 1)) {
+		/* in use by more than me */
+		uint32_t current_size = *_get_capacity();
+
+		uint32_t *mem_new = (uint32_t *)Memory::alloc_static(current_size * sizeof(T), true);
+		*(mem_new - 1) = current_size; // capacity
+		*(mem_new - 2) = 1; // refcount
+
+		T *_data = (T *)(mem_new);
+
+		// initialize new elements
+		if (__has_trivial_copy(T)) {
+			memcpy(mem_new, _ptr, _size * sizeof(T));
+		} else {
+			for (uint32_t i = 0; i < _size; i++) {
+				memnew_placement(&_data[i], T(_get_data()[i]));
+			}
+		}
+
+		_unref(_ptr);
+		_ptr = _data;
+	}
+}
+
+template <class T>
+void CowData<T, 0>::_copy_on_write() {
 
 	if (!_ptr)
 		return;
@@ -432,11 +490,6 @@ void CowData<T, N>::_copy_on_write() {
 		_unref(_ptr);
 		_ptr = _data;
 	}
-}
-
-template <class T>
-void CowData<T, 0>::_copy_on_write() {
-	return _copy_on_write<T, 1>();
 }
 
 template <class T>

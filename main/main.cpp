@@ -2105,9 +2105,4 @@ void Main::cleanup() {
 	OS::get_singleton()->clear_last_error();
 	OS::get_singleton()->finalize_core();
 
-	printf("CowData size benchmark:\n");
-	for (auto [key, value] : cowdata_sizes) {
-		printf("size: %zu, occurrences: %zu\n", key, value);
-	}
-
 }

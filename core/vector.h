@@ -52,7 +52,7 @@ public:
 	}
 };
 
-template <class T>
+template <class T, int N = 2>
 class Vector {
 	friend class VectorWriteProxy<T>;
 
@@ -60,7 +60,7 @@ public:
 	VectorWriteProxy<T> write;
 
 private:
-	CowData<T> _cowdata;
+	CowData<T, N> _cowdata;
 
 public:
 	bool push_back(const T &p_elem);
@@ -86,7 +86,7 @@ public:
 	Error insert(int p_pos, const T &p_val) { return _cowdata.insert(p_pos, p_val); }
 	int find(const T &p_val, int p_from = 0) const { return _cowdata.find(p_val, p_from); }
 
-	void append_array(const Vector<T> &p_other);
+	void append_array(const Vector<T, N> &p_other);
 
 	template <class C>
 	void sort_custom() {
@@ -126,8 +126,8 @@ public:
 	_FORCE_INLINE_ ~Vector() {}
 };
 
-template <class T>
-void Vector<T>::invert() {
+template <class T, int N>
+void Vector<T, N>::invert() {
 
 	for (int i = 0; i < size() / 2; i++) {
 		T *p = ptrw();
@@ -135,8 +135,8 @@ void Vector<T>::invert() {
 	}
 }
 
-template <class T>
-void Vector<T>::append_array(const Vector<T> &p_other) {
+template <class T, int N>
+void Vector<T, N>::append_array(const Vector<T, N> &p_other) {
 	const int ds = p_other.size();
 	if (ds == 0)
 		return;
@@ -146,8 +146,8 @@ void Vector<T>::append_array(const Vector<T> &p_other) {
 		ptrw()[bs + i] = p_other[i];
 }
 
-template <class T>
-bool Vector<T>::push_back(const T &p_elem) {
+template <class T, int N>
+bool Vector<T, N>::push_back(const T &p_elem) {
 
 	Error err = resize(size() + 1);
 	ERR_FAIL_COND_V(err, true);

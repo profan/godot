@@ -42,13 +42,13 @@
 #include "core/os/memory.h"
 #include "core/sort_array.h"
 
-template <class T>
+template <class T, N>
 class VectorWriteProxy {
 public:
 	_FORCE_INLINE_ T &operator[](int p_index) {
-		CRASH_BAD_INDEX(p_index, ((Vector<T> *)(this))->_cowdata.size());
+		CRASH_BAD_INDEX(p_index, ((Vector<T, N> *)(this))->_cowdata.size());
 
-		return ((Vector<T> *)(this))->_cowdata.ptrw()[p_index];
+		return ((Vector<T, N> *)(this))->_cowdata.ptrw()[p_index];
 	}
 };
 
@@ -57,7 +57,7 @@ class Vector {
 	friend class VectorWriteProxy<T>;
 
 public:
-	VectorWriteProxy<T> write;
+	VectorWriteProxy<T, N> write;
 
 private:
 	CowData<T, N> _cowdata;
